@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Alexandria</title>
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500&amp;subset=latin-ext" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="jquery.min.js"></script>
+    <script src="lib.js"></script>
+    <link rel="icon" href="favicon.png" type="image"/>
+    <script>
+        function deleteAllCookies() {
+            var cookies = document.cookie.split(";"),i=0;
+            for (; i < cookies.length; i++) {
+                var cookie = cookies[i],
+                    eqPos = cookie.indexOf("="),
+                    name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            }
+        }
+    </script>
+</head>
+<body>
+<div id="wrapper">
+    <div id="title">
+        <a href="index.html">
+            <h1>Project <img src="logo.png"> Alexandria</h1>
+        </a>
+    </div>
+    <div id="subtitle" style="overflow:auto;">
+        <h2>Familie Brandes</h2>
+    </div>
+    <div id="subsubtitle" style="overflow:auto;">
+        <h3>Cookies</h3>
+    </div>
+    <div id="content">
+        <div id="peoplespace" style="text-align:center;">
+            <p>Diese Webseite verwendet Cookies. Diese Cookies bestehen aus einem Cookie, der erstellt wird, sobald Du unten der Verwendung von Cookies zustimmst und ist ein Jahr lang gültig. Er verhindert ein erneutes Anzeigen dieser Seite innerhalb dieses Zeitraums. Ein weiterer Cookie wird nach erfolgreicher Passwort-Eingabe erstellt und ist 12 Stunden lang gültig. Er ist nötig um unerlaubten Zugriff auf Daten zu verhindern, welche sich im passwortgeschützten Bereich befinden.</p>
+            <p>Die Cookies löschen kannst Du entweder durch Ablehnung der Cookie-Bedingungen unten, in der Datenschutzerklärung oder in den Einstellungen Deines Browsers. Bitte Wende Dich hierzu an Deinen Browser-Entwickler.</p>
+            <button onclick="createCookie('hasVisited','true','356');window.location='/';">Ich stimme der Verwendung meiner Daten zu.</button><br>
+            <button onclick="deleteAllCookies();window.location='http://archive.org/';">Ich stimme nicht zu, bring mich hier weg!</button>
+        </div>
+    </div>
+    <div id="footer">
+        &copy;2020 by Frederick Brandes | <a href="disclaimer.html">Datenschutzerklärung</a> | <a href="contact.html">Impressum/Kontakt</a>
+    </div>
+</div>
+</body>
+</html></html>

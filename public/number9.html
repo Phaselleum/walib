@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Genealogy</title>
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500&amp;subset=latin-ext" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="lib.js"></script>
+    <script src="jquery.min.js"></script>
+    <script src="sha512.min.js"></script>
+    <link rel="icon" href="favicon.png" type="image"/>
+    <script>
+        function sendLoginData(event){
+
+            event.preventDefault();
+
+            $("#inSub").attr("disabled","disabled").attr('value','Bitte Warten!');
+
+            var x2=sha512($("#inPw").val());
+            $.get("/login9/" + x2,function(data){
+
+                console.log(data);
+
+                if(data.length === 64){
+
+                    createCookie("session",data,.5);
+                    window.location.href = "/nomad.html";
+                    return true;
+
+                } else {
+
+                    window.alert("Login failed!");
+                    window.location.reload();
+                    return false;
+
+                }
+            }).fail(function(){
+
+                $("#inSub").removeAttr("disabled");
+                window.alert("Login failed!");
+                window.location.reload();
+                return false;
+
+            });
+
+            return false;
+
+        }
+    </script>
+</head>
+<body>
+    <div id="wrapper">
+        <div id="title">
+            <a href="index.html">
+                <h1>Project <img src="logo.png"> Alexandria</h1>
+            </a>
+        </div>
+        <div id="subtitle" style="overflow:auto;">
+            <h2>Familie Brandes</h2>
+        </div>
+        <div id="subsubtitle" style="overflow:auto;">
+            <h3>Login</h3>
+        </div>
+        <div id="content">
+            <div id="peoplespace" style="text-align:center;">
+                <form>
+                    It was the best of times,<br>
+                    It was the blurst of times.<br><br>
+                    <label for="inPw">Password: </label><input type="password" id="inPw" /><br>
+                    <input id="inSub" type="submit" value="Login" onclick="sendLoginData(event)"/>
+                </form>
+            </div>
+        </div>
+        <div id="footer">
+            &copy;2020 by Frederick Brandes | <a href="disclaimer.html">Disclaimer</a> | <a href="contact.html">Contact</a>
+        </div>
+    </div>
+</body>
+</html>

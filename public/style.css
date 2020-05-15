@@ -1,0 +1,624 @@
+body{
+    font-family: 'Ubuntu', sans-serif;
+    margin: 0;
+}
+
+h1,h2,h3 {
+    margin: 0;
+}
+
+h2 {
+    font-size: 1.5em;
+}
+
+h3 {
+    padding: 0 2%;
+    font-size: 1.5em;
+}
+
+br {
+    line-height: 1.5em;
+}
+
+a{
+    color: inherit;
+    text-decoration: none;
+}
+
+a text {
+    cursor: pointer;
+}
+
+form, .form{
+    padding: 20px;
+}
+
+textarea{
+    width: 90%;
+    height: 200px;
+}
+
+button {
+    cursor: pointer;
+}
+
+input,select,button{
+    font-family: inherit;
+    font-size: 1em;
+    padding: 0.4em 0.2em;
+    margin: 5px 5px 10px;
+    font-weight: 500;
+    background-color: white;
+    border: 1px solid #AAA;
+}
+
+#title{
+    padding: 20px 10%;
+    background-color: #FFF;
+    color: #000;
+    text-align: center;
+    font-size: 3.5vw;
+}
+
+#title img{
+    max-height: 10vw;
+    vertical-align: middle;
+}
+
+#subtitle{
+    padding: 1em 20%;
+    background-color: #165A0B;
+    border: #AAA solid;
+    border-width: 5px 0;
+    color: #FFF;
+}
+
+#subsubtitle{
+    padding: 1em 15%;
+    background-color: #FFF;
+    border: #AAA solid;
+    border-width: 0 0 3px 0;
+    color: #000;
+}
+
+#searchtitle{
+    padding: 1em 0;
+    width: 90%;
+    border-width: 0;
+    margin: 0 5%;
+    background-color: #FFF;
+    color: #000;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.5em;
+}
+
+#contentTitle{
+    background: #ffbf44;
+    padding: 0.83em 0;
+    box-shadow:0 2px 3px 0 #333 inset;
+}
+
+#formLeft,#formRight{
+    width:380px;
+    float:left;
+}
+
+#givenNames{
+    height: 2em;
+    margin: 0.4em 0 1em 0;
+}
+
+#peoplespace, #infospace, #personspace{
+    background: #eeeeff;
+    overflow: auto;
+    box-shadow: 0 2px 3px 0 #333 inset;
+}
+
+#peoplespace {
+    min-height: 500px;
+    padding: 15px 5px 15px;
+}
+
+#infospace {
+    -moz-column-count: 2;
+    -webkit-column-count: 2;
+    column-count: 2;
+    -moz-column-gap: 1em;
+    -webkit-column-gap: 1em;
+    column-gap: 1em;
+    padding: 15px 5px 15px;
+}
+
+#peoplespace h3, #infospace h3 {
+    padding: 25px 2%;
+    font-size: 1.5em;
+    margin: 20px auto;
+}
+
+#tree {
+    margin: 10px;
+    background-color:#DDD;
+    cursor: move;
+    cursor: grab;
+    cursor: -webkit-grab;
+    cursor: -moz-grab;
+}
+
+#tree g {
+    cursor:default;
+}
+
+#footer{
+    font-size: 0.8em;
+    text-align: center;
+    margin: 5px 0;
+}
+
+#addwrapper{
+    width: 800px;
+    min-height: 540px;
+    margin: auto;
+    border: 1px solid #e8e8e8;
+    background: #FFF;
+}
+
+.inputlabel{
+    padding-left: 10px;
+    margin-top: 10px;
+    font-weight: 300;
+}
+
+.person{
+    float: left;
+    margin: 10px;
+    border: 1px solid #e8e8e8;
+    width: 130px;
+    height: 230px;
+    padding: 10px;
+    background: #FFF;
+    border-radius: 1px;
+    overflow: hidden;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+}
+
+.personimg{
+    text-align: center;
+}
+
+.personimg img {
+    max-width: 180px;
+    max-height: 120px;
+}
+
+.basicInfo{
+    max-width: 100%;
+    background-color: #FFF;
+    border: #EEE solid 1px;
+    font-size: 1.2em;
+    display: inline-block;
+    margin: 10px 10px 1em;
+    width: 100%;
+}
+
+.basicInfo a{
+    text-decoration: underline;
+}
+
+.basicInfoHeader{
+    font-weight: 300;
+    padding: 10px 0 10px 100px;
+    font-size: 1.2em;
+    border-bottom: 2px solid #EEE;
+}
+
+.basicInfoLine{
+    border-bottom: 1px solid #EEE;
+    padding: 10px;
+    overflow: auto;
+    line-height: 1.5em;
+}
+
+.basicInfoLineImg{
+    width: 100%;
+    text-align: center;
+}
+
+.basicInfoLine img {
+    width: 100%;
+    max-width: 500px;
+}
+
+.basicInfoLineContent,.basicInfoLineDescriptor{
+    float: left;
+    min-width: 200px;
+    max-width: 100%;
+    padding: 5px 10px;
+    border: #EEE solid 0;
+    border-left-width: 1px;
+    font-weight: 400;
+}
+
+.basicInfoLineDescriptor{
+    min-width: 100px;
+    font-weight: 300;
+}
+
+.sblevel{
+    overflow: auto;
+    width: 100%;
+    border-bottom: 1px solid #AAA;
+}
+
+.sbunit{
+    float: left;
+}
+
+.treelistitem {
+    float: left;
+    height: 280px;
+    margin: 20px auto 5px;
+    font-weight: normal;
+}
+
+.w100 {
+    width: 100%;
+}
+
+.w50 {
+    width: 50%;
+}
+
+.w33 {
+    width: 33%;
+}
+
+.w25 {
+    width: 25%;
+}
+
+@media (max-width:750px) {
+
+    .m50 {
+        width: 50%;
+    }
+
+    .m100 {
+        width: 100%;
+    }
+
+}
+
+@media (max-width:350px) {
+
+    .m50 {
+        width: 100%;
+    }
+
+}
+
+@media (max-width:950px) {
+
+    #BookReader {
+        display: none;
+    }
+
+}
+
+.treelistitemimg {
+    background-color: #FFF;
+    border: 3px solid #888;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto .5em;
+    cursor: pointer;
+}
+
+.treelistitemimg:hover {
+    border-color: #444;
+}
+
+.treelistitemimg img {
+    max-width: 160px;
+}
+
+.treelistitemdesc {
+    margin: auto;
+    line-height: 1.5em;
+}
+
+#searchresults {
+    width: 50%;
+    margin: auto;
+    font-weight: normal;
+    text-decoration: none;
+    max-width: 600px;
+}
+
+.searchresult {
+    margin: 20px 0;
+    border-bottom: 1px solid #AAA;
+    padding: 10px 10px 20px;
+}
+
+.searchresult a {
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+/* Person stuff */
+
+thead {
+    text-align: center;
+}
+
+thead td {
+    padding: 5px 0;
+}
+
+tbody {
+    text-align: left;
+    font-size: 90%;
+    vertical-align: top;
+}
+
+th {
+    font-weight: bold;
+}
+
+td, th {
+
+    padding: 12px;
+
+}
+
+#persontitle {
+    margin: 15px 0;
+}
+
+#personspace h3 {
+    font-family: 'Linux Libertine','Georgia','Times',serif;
+    text-align: left;
+    padding: 15px 0 5px;
+    font-size: 2em;
+    font-weight: normal;
+    border-bottom: 1px solid #AAA;
+    overflow: hidden;
+    background-color: #FFF;
+}
+
+#personspace h4 {
+    font-family: 'Linux Libertine','Georgia','Times',serif;
+    text-align: left;
+    padding: 15px 0 5px;
+    font-size: 1.5em;
+    font-weight: normal;
+    border-bottom: 1px solid #AAA;
+    overflow: hidden;
+    margin-bottom: .5em;
+}
+
+#personspace h5 {
+    margin-bottom: .5em;
+}
+
+#personspace ul {
+    line-height: 2em;
+}
+
+#personspace li {
+    line-height: 1.5em;
+}
+
+#personspace a {
+    text-decoration: underline;
+    color: #2a4ed2;
+}
+
+#personspace a[href^=http] {
+    background: url("ext.png") center right no-repeat;
+    padding-right: 13px;
+    color: #2a4ed2;
+}
+
+#personcontent {
+    width: 90%;
+    margin: 0 auto 25px;
+    background-color: #FFF;
+    border: #2a4ed2 solid;
+    border-width: 0 1px 1px 1px;
+    padding: 15px 2.5%;
+    overflow: auto;
+    box-shadow:0 2px 3px 0 #333 inset;
+    line-height: 1.5em;
+}
+
+#personcontent a {
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#personinfobox {
+    width: 250px;
+    border: 1px solid #AAA;
+    background: #F8F8F8;
+    margin: 0.5em 0 0.5em 1em;
+    padding: 0.2em;
+    float: right;
+    clear: right;
+    line-height: 1.3em;
+}
+
+@media (max-width:550px) {
+
+    #personinfobox {
+        margin: 0.5em auto 0.5em;
+        float: none;
+    }
+
+}
+
+#personinfobox img {
+    width: 220px;
+}
+
+#personinfobox td, #personinfobox th {
+    padding: .5em 0;
+}
+
+.ainfobox {
+    width: 500px;
+    border: 1px solid #AAA;
+    background: #F8F8F8;
+    margin: 0.5em auto;
+    padding: 0.2em;
+    line-height: 1.3em;
+}
+
+@media (max-width:550px) {
+
+    .ainfobox {
+        margin: 0.5em auto 0.5em;
+        float: none;
+    }
+
+}
+
+.ainfobox img[onclick], .ainfobox input[type=checkbox], .ainfobox input[type=file] {
+    cursor: pointer;
+}
+
+.ainfobox td, .ainfobox th {
+    padding: .5em 0;
+}
+
+.ainfobox img {
+    max-width: 250px;
+    max-height: 250px;
+}
+
+.personinfoboximgtd {
+    text-align: center;
+}
+
+.personinfoboximgdesc {
+    font-size: 80%;
+    padding: 0 0 10px !important;
+}
+
+.persongallery {
+    overflow: auto;
+    display: flex;
+    flex-flow: wrap;
+}
+
+.gridc1r1 {
+    -ms-grid-row: 1;
+    -ms-grid-column: 1;
+}
+
+.gridc1r2 {
+    -ms-grid-row: 2;
+    -ms-grid-column: 1;
+}
+
+.persongalleryelement {
+    border: #AAA 1px solid;
+    padding: 5px;
+    margin: 10px 20px;
+    background: #F8F8F8;
+    width: min-content;
+    width: -moz-min-content;
+    width: -webkit-min-content;
+    font-size: 80%;
+    display: -ms-grid;
+    -ms-grid-columns: min-content;
+}
+
+.persongalleryelement img {
+    max-width: 400px;
+    max-height: 400px;
+    cursor: pointer;
+}
+
+@media (max-width:875px) {
+
+    .persongalleryelement img {
+        max-width: 200px;
+        max-height: 200px;
+    }
+
+    .persongalleryelement {
+        margin: 5px 5px;
+    }
+}
+
+.wh200 {
+    max-width: 200px !important;
+    max-height: 200px !important;
+}
+
+.persongallerylargeelement {
+    border: #AAA 1px solid;
+    padding: 25px 2.5%;
+    margin: 25px auto;
+    background: #F8F8F8;
+    width: 95%;
+    text-align: center;
+}
+
+.persongallerylargeelement img {
+    max-width: 95%;
+    cursor: pointer;
+}
+
+.treelist {
+    overflow: auto;
+}
+
+
+/* Lightbox */
+
+
+#lightbox {
+    position: fixed;
+    overflow: hidden;
+    visibility: hidden;
+    top: -5px;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    background: rgba(0,0,0,.75);
+    padding: 50px 10% 50px 10%;
+    text-align: center;
+    cursor: pointer;
+    z-index: 1;
+}
+
+#lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    z-index: 5;
+}
+
+#lightboxleft {
+    position: fixed;
+    left: 0;
+    width: 30px;
+    height: 60px;
+    top: 50%;
+    background: rgba(0,0,0,.25) url(/BookReader/lightbox/left.png);
+    z-index: 5;
+}
+
+#lightboxright {
+    position: fixed;
+    right: 0;
+    width: 30px;
+    height: 60px;
+    top: 50%;
+    background: rgba(0,0,0,.25) url(/BookReader/lightbox/right.png);
+    z-index: 5;
+}
