@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "name": "walib",
   "version": "1.0.0",
@@ -6,3 +7,13 @@
     "pdf-image": "^2.0.0"
   }
 }
+=======
+{
+  "name": "walib",
+  "version": "1.0.0",
+  "dependencies": {
+    "formidable": "latest",
+    "pdf-image": "^2.0.0"
+  }
+}
+>>>>>>> c13d7310553959be40eb52fcff7cc0b1bc1487b7
