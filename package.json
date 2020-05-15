@@ -1,0 +1,8 @@
+{
+  "name": "walib",
+  "version": "1.0.0",
+  "dependencies": {
+    "formidable": "latest",
+    "pdf-image": "^2.0.0"
+  }
+}
