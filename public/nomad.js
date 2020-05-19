@@ -146,6 +146,7 @@ function addDocument() {
         data: fd,
         contentType: false,
         processData: false,
+        timeout: 5000,
         success: function(data) {
 
             alert(data);
@@ -154,7 +155,12 @@ function addDocument() {
         },
         error: function(jqXHR, textStatus, errorThrown) {
 
-            alert("Error thrown during post: " + textStatus + ";" + errorThrown);
+            if(textStatus === "timeout") {
+
+                alert("reloading page due to timeout (probably related to pdf-image if everything looks fine!");
+                window.location.reload();
+
+            } else alert("Error thrown during post: " + textStatus + ";" + errorThrown);
 
         }
 
@@ -166,7 +172,7 @@ function addDocument() {
 
 function editDocument(name) {
 
-    let newName = $("#g-e-" + name).val();
+    let newName = $("#g-e-" + name).val().replace(/\s/g,"-"); //hyphenate
 
     if(newName.length < 1)
         return alert("please enter a different document name!");
@@ -218,6 +224,7 @@ function uploadDoc(name) {
         data: fd,
         contentType: false,
         processData: false,
+        timeout: 5000,
         success: function(data) {
 
             alert(data);
@@ -226,7 +233,12 @@ function uploadDoc(name) {
         },
         error: function(jqXHR, textStatus, errorThrown) {
 
-            alert("Error thrown during post: " + textStatus + ";" + errorThrown);
+            if(textStatus === "timeout") {
+
+                alert("reloading page due to timeout (probably related to pdf-image if everything looks fine!");
+                window.location.reload();
+
+            } else alert("Error thrown during post: " + textStatus + ";" + errorThrown);
 
         }
 

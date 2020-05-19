@@ -443,7 +443,7 @@ function addDocument(name, id, library, resources, forbiddenNames, callback) {
             name: name,
             authors: [],
             coauthors: [],
-            pageCount: [],
+            pageCount: "",
             date: "",
             file: "",
             description: "",
@@ -468,7 +468,7 @@ function addDocument(name, id, library, resources, forbiddenNames, callback) {
  ***/
 function editDocument(oldName, newName, library, resources, forbiddenNames, callback) {
 
-    console.log("New document renaming request: " + oldName + "->" + newName);
+    console.log("New document renaming request: " + oldName + "->" + newName + " (" + docId + ")");
 
     if(library.includes(oldName)) {
 
@@ -480,6 +480,7 @@ function editDocument(oldName, newName, library, resources, forbiddenNames, call
 
                 Object.defineProperty(resources, newName, Object.getOwnPropertyDescriptor(resources, oldName));
                 delete resources[oldName];
+                resources[newName].name = newName.replace("-"," ")
 
             }
 
@@ -513,15 +514,20 @@ function removeDocument(name, library, resources, callback) {
 
     if(library.includes(name)) {
 
+        let fileName = "";
+
+        if(resources[name].hasOwnProperty("file"))
+            fileName = resources[name].file + "";
+
         library.splice(library.indexOf(name), 1);
         delete resources[name];
-        callback("SUCCESS!");
+        callback("SUCCESS (" + fileName + ")!", fileName, false);
 
     } else {
 
         console.log("ERROR: A document of that name does not exist!");
 
-        callback("ERROR: A document of this name does not exist!", true);
+        callback("ERROR: A document of this name does not exist!", "", true);
 
     }
 
@@ -595,7 +601,7 @@ function adminDocument(library, resources, callback) {
             "                    </tr>\n" +
             "                    <tr id='g-edit-" + library[i] + "' style='display:none;'>\n" +
             "                        <td colspan='2'>\n" +
-            "                            <input id='g-e-" + library[i] + "' type='text' value='" + library[i] + "'>\n" +
+            "                            <input id='g-e-" + library[i] + "' type='text' value='" + resc.name + "'>\n" +
             "                        </td>\n" +
             "                        <td colspan='3'>\n" +
             "                            <button onclick='editDocument(\"" + library[i] + "\")'>Edit</button>\n" +
@@ -672,7 +678,7 @@ function adminDocument(library, resources, callback) {
             "                    </tr>\n" +
             "                    <tr>\n" +
             "                        <td colspan='5'>\n" +
-            "                            <button onclick='editDocumentMeta(\"" + library[i] + "\)'>Update metadata" +
+            "                            <button onclick='editDocumentMeta(\"" + library[i] + "\")'>Update metadata" +
             "</button>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +

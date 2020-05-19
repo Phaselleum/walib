@@ -56,7 +56,7 @@ const PORT = 80,
     ADMIN_SESS_TIMEOUT = 90*60*1000, // 90 minutes
     MAX_FILE_SIZE = 1e8; // ~100MB
 let ADMIN_SESS_ID = f.randomChars(64), //placeholder, actual ID generated upon admin login (regenerated with every login)
-    PASSWORD =  "28a5c6dac4ecbc8294a840150744d09523fb562e5c55ddd2d6a723979c8d351b1d394057440675ba8ccec12537ed0a804f398ac867d621eefa52d70fbfbe680e", //Flensburg2016
+    PASSWORD =  "28a5c6dac4ecbc8294a840150744d09523fb562e5c55ddd2d6a723979c8d351b1d394057440675ba8ccec12537ed0a804f398ac867d621eefa52d70fbfbe680e", //user password
     ADMIN_PW =  "0bd2cff572e3944fe54587d01cdffc2abd4d6b30fc8d2549f0edf3ab0810de61389a6a97d0be5ffcc48c191966859b952351eba22d0c76006a9146b2f03b63b3"; //admin passoword
 
 
@@ -651,6 +651,16 @@ http.createServer(function(req,res) {
 
                                 if(!err) {
 
+                                    database.resources.documents[docId]["file"] = fileName;
+
+                                    let pdfimg = new PDFImage("data/documents/" + docId + "/" + fileName);
+
+                                    pdfimg.numberOfPages().then(function(pageCount){
+
+                                        database.resources.documents[docId]["pageCount"] = pageCount;
+
+                                    });
+
                                     database.libToFile("documents/" + docId,
                                         JSON.stringify(database.resources.documents[docId]), function (err) {
 
@@ -658,11 +668,6 @@ http.createServer(function(req,res) {
                                             JSON.stringify(database.library.documents), function (err2) {
 
                                             fs.mkdir("data/documents/" + docId, function (err3) {
-
-                                                let pdfimg = new PDFImage("data/documents/" + docId + "/" + fileName);
-
-                                                database.resources.documents[docId]["pageCount"] =
-                                                    pdfimg.numberOfPages();
 
                                                 pdfimg.convertFile().then(function () {
 
@@ -731,11 +736,11 @@ http.createServer(function(req,res) {
 
                         if(!err) {
 
-                            database.libToFile("document-library", JSON.stringify(database.library.galleries),
+                            database.libToFile("document-library", JSON.stringify(database.library.documents),
                                 function(err){
 
                                 database.libToFile("documents/" + path[1],
-                                    JSON.stringify(database.resources.galleries[path[2]]),function(err2){
+                                    JSON.stringify(database.resources.documents[path[2]]),function(err2){
 
                                     fs.rename("data/documents/" + path[1] + ".json",
                                         "data/documents/" + path[2] + ".json", function(err3) {
@@ -765,8 +770,8 @@ http.createServer(function(req,res) {
                 //handles removing of a document
                 } else if(path[0] === "document-remove") {
 
-                    archiver.removeGallery(path[1], database.library.documents, database.resources.documents,
-                        function (data, err) {
+                    archiver.removeDocument(path[1], database.library.documents, database.resources.documents,
+                        function (data, fileName, err) {
 
                         if(!err) {
 
@@ -775,13 +780,17 @@ http.createServer(function(req,res) {
 
                                 fs.unlink("data/documents/" + path[1] + ".json", function(err2){
 
-                                    fs.rmdir("data/documents/" + path[1], function(err3){
+                                    fs.unlink("data/documents/" + fileName, function(err3){
 
-                                        if(err || err2 || err3)
-                                            res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
-                                                err3 + ";" + data, function(){res.end();});
+                                        fs.rmdir("data/documents/" + path[1], function(err4){
 
-                                        else res.write(data, function(){res.end();});
+                                            if(err || err2 || err3 || err4)
+                                                res.write("Error while writing to disk!;" + err + ";" + err2 +
+                                                    ";" + err3 + ";" + err4 + ";" + data, function(){res.end();});
+
+                                            else res.write(data, function(){res.end();});
+
+                                        });
 
                                     });
 
@@ -1240,160 +1249,84 @@ const database = {
 //loads the main json library to the database
 function loadLibrary() {
 
-    //load library file to database
-    database.fileToLib("library",function(data, err) {
+    //load gallery library to database
+    database.fileToLib("gallery-library",function(data, err) {
 
         if (!err) {
 
-            database.library = JSON.parse(data);
-            console.log("Library successfully loaded!");
+            database.library.galleries = JSON.parse(data);
+            console.log("Gallery library successfully loaded!");
 
         } else {
 
-            console.error("ERROR: Database library not found or corrupted!");
+            console.error("ERROR: Gallery library not found or corrupted!");
             return;
 
         }
 
         //load referenced resources to database
-        for (let i=0; i<database.library.length; i++) {
+        database.resources.galleries = {};
+        for (let i=0; i<database.library.galleries.length; i++) {
 
-            database.fileToLib(database.library[i], function (data, err) {
+            database.fileToLib("galleries/" + database.library.galleries[i], function (data, err) {
 
-                if (!err) {
+                if (!err)
+                    database.resources.galleries[database.library.galleries[i]] = JSON.parse(data);
 
-                    let jdata = JSON.parse(data);
-                    database.resources[database.library[i]] = jdata;
-
-                    if(!jdata.hasOwnProperty("id"))
-                        console.error("WARNING: resource has no id attribute! (" + database.library[i] + ")");
-
-                    else if(database.library[i] !== jdata.id)
-                        console.error("WARNING: Mismatch between library entry and resource id! (" +
-                            database.library[i] + "|" + jdata.id + ")");
-
-                } else
-                    console.error("ERROR: The resource requested could not be loaded to the database! (loadLibrary)");
+                else
+                    console.error("ERROR: The resource requested could not be loaded to the database! " +
+                        "(loadLibrary/galleries)");
 
             });
 
         }
 
-        //load gallery library to database
-        database.fileToLib("gallery-library",function(data, err) {
+
+        //load document library to database
+        database.fileToLib("document-library",function(data, err) {
 
             if (!err) {
 
-                database.library.galleries = JSON.parse(data);
-                console.log("Gallery library successfully loaded!");
+                database.library.documents = JSON.parse(data);
+                console.log("Document library successfully loaded!");
 
             } else {
 
-                console.error("ERROR: Gallery library not found or corrupted!");
+                console.error("ERROR: Document library not found or corrupted!");
                 return;
 
             }
 
             //load referenced resources to database
-            database.resources.galleries = {};
-            for (let i=0; i<database.library.galleries.length; i++) {
+            database.resources.documents = {};
+            for (let i=0; i<database.library.documents.length; i++) {
 
-                database.fileToLib("galleries/" + database.library.galleries[i], function (data, err) {
+                database.fileToLib("documents/" + database.library.documents[i], function (data, err) {
 
                     if (!err)
-                        database.resources.galleries[database.library.galleries[i]] = JSON.parse(data);
+                        database.resources.documents[database.library.documents[i]] = JSON.parse(data);
 
                     else
                         console.error("ERROR: The resource requested could not be loaded to the database! " +
-                            "(loadLibrary/galleries)");
+                            "(loadLibrary/documents)");
 
                 });
 
             }
 
-
-            //load document library to database
-            database.fileToLib("document-library",function(data, err) {
+            //load language file to database
+            database.fileToLib("lang",function(data, err) {
 
                 if (!err) {
 
-                    database.library.documents = JSON.parse(data);
-                    console.log("Document library successfully loaded!");
+                    database.lang = JSON.parse(data);
+                    f.setLanguageLibrary(database.lang);
 
                 } else {
 
-                    console.error("ERROR: Document library not found or corrupted!");
-                    return;
+                    console.error("ERROR: Language file not found or corrupted!");
 
                 }
-
-                //load referenced resources to database
-                database.resources.documents = {};
-                for (let i=0; i<database.library.documents.length; i++) {
-
-                    database.fileToLib("documents/" + database.library.documents[i], function (data, err) {
-
-                        if (!err)
-                            database.resources.documents[database.library.documents[i]] = JSON.parse(data);
-
-                        else
-                            console.error("ERROR: The resource requested could not be loaded to the database! " +
-                                "(loadLibrary/documents)");
-
-                    });
-
-                }
-
-                //load article library to database
-                database.fileToLib("article-library",function(data, err) {
-
-                    if (!err) {
-
-                        database.library.articles = JSON.parse(data);
-                        console.log("Article library successfully loaded!");
-
-                    } else {
-
-                        console.error("ERROR: Article library not found or corrupted!");
-                        return;
-
-                    }
-
-                    //load referenced resources to database
-                    database.resources.articles = {};
-                    for (let i=0; i<database.library.articles.length; i++) {
-
-                        database.fileToLib("articles/" + database.library.articles[i],
-                            function (data, err) {
-
-                            if (!err)
-                                database.resources.articles[database.library.articles[i]] = JSON.parse(data);
-
-                            else
-                                console.error("ERROR: The resource requested could not be loaded to the database! " +
-                                    "(loadLibrary/articles)");
-
-                        });
-
-                    }
-
-                    //load language file to database
-                    database.fileToLib("lang",function(data, err) {
-
-                        if (!err) {
-
-                            database.lang = JSON.parse(data);
-                            f.setLanguageLibrary(database.lang);
-
-                        } else {
-
-                            console.error("ERROR: Language file not found or corrupted!");
-
-                        }
-
-                    });
-
-                });
 
             });
 
