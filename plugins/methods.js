@@ -291,7 +291,7 @@ function stringToDate(str,type) {
 
 }
 
-function lang(expression){
+function lang(expression) {
 
     if(LANGUAGE_LIBRARY[LANGUAGE][expression])
         return LANGUAGE_LIBRARY[LANGUAGE][expression];
@@ -300,9 +300,21 @@ function lang(expression){
 
 }
 
-function setLanguageLibrary(lib){
+function setLanguageLibrary(lib) {
 
     LANGUAGE_LIBRARY = lib;
+
+}
+
+function hyphenate(str) {
+
+    return str.replace("-","%-").replace(/\s/g,"-");
+
+}
+
+function dehyphenate(str) {
+
+    return str.replace("-"," ").replace(/%\s/g,"-");
 
 }
 
@@ -317,3 +329,5 @@ module.exports.cookieToObj = cookieToObj;
 module.exports.randomChars = randomChars;
 module.exports.setLanguageLibrary = setLanguageLibrary;
 module.exports.lang = lang;
+module.exports.hyphenate = hyphenate;
+module.exports.dehyphenate = dehyphenate;

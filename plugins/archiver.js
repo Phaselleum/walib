@@ -1,18 +1,634 @@
 const f = require("./methods.js"),
     h = require("./htmlbase");
 
+
 /***
- * Creates a HTML over a given multipage document / pdf dataset
- * parameters: document: meta data object, name: document name, callback: callback function
+ * @function getGallery - Dynamically creates a HTML page over a given gallery dataset
+ *
+ * @param {string} galleryid - the id of the gallery resources Array from the corresponding main database object entry
+ * @param {Object} resources - the gallery resources Object from the main database object
+ * @param {string} name - name of the gallery
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
  ***/
-function getDocument(document, library, callback) {
+function getGallery(galleryid, resources, name, req, res) {
 
-    let name = "MISSINGNAME";
+    let gallery = [];
 
-    if(document.hasOwnProperty("title"))
-        name = document.title;
+    if(!resources.hasOwnProperty(galleryid))
+        console.error("ERROR: Requested gallery \"" + name + "\" not found.");
+    else gallery = resources[galleryid];
 
-    let html = h.getHead(false, true, f.lang("Detailed View"), name) +
+    name = f.dehyphenate(name)
+
+    let html = h.getHead(getLightboxHead(), f.lang("Detailed View"), name) +
+        "<div id='content'>\n" +
+        "    <div id='personspace'>\n" +
+        "        <div id='personcontent'>\n" +
+        "            <div id='persontitle'>\n" +
+        "                <h3>" + f.lang("Gallery") + ": " + name + "</h3>\n" +
+        "            </div>\n" +
+        "            <div class='persongallery'>\n";
+
+    for(let i=0;i<gallery.length;i++) {
+
+        html +="<div class='persongalleryelement'>\n";
+        html += "<img class='gridc1r2' src='/getImg/galleries/" + name + "/" + gallery[i][0]
+            + "' onclick='lightbox(" + i + ");' alt='" + name + "'>";
+        html += "<br><span class='gridc1r1'>" + gallery[i][1] + "</span>\n";
+        html += "</div>\n";
+
+    }
+
+    html += "</div>\n</div>\n</div>\n</div>\n";
+
+    html += h.getFoot(getLightboxFoot());
+
+    res.write(html, function () {res.end();});
+
+}
+
+
+/***
+ * @function adminGallery - Creates a HTML page for managing the galleries
+ *
+ * @param {string[]} library - the gallery library Array from the main database object
+ * @param {Object} resources - the resources library Object from the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ *
+ * structure of gallery json:
+ *
+ * Array of entries:
+ * -> two entry array:
+ *     -> 0: image file name
+ *     -> 1: image description
+ *
+ ***/
+function adminGallery(library, resources, req, res) {
+
+    let html = h.getHead(false, false, "Gallery Management Tool",
+        "Gallery Management Tool") +
+        "<div id='content'>\n" +
+        "    <div id='personspace'>\n" +
+        "        <div id='personcontent'>\n" +
+        "            <div id='persontitle'>\n" +
+        "                <h3>Available Galleries</h3>\n" +
+        "            </div>\n";
+
+    for(let i=0;i<library.length;i++) {
+
+        let resc = resources[library[i]];
+
+        html += "            <table class='ainfobox' id='g-" + library[i] + "'>\n" +
+            "                <thead>\n" +
+            "                    <tr id='g-disp-" + library[i] + "'>\n" +
+            "                        <td colspan='2'>\n" +
+            "                            <b>" + library[i] + "</b>\n" +
+            "                        </td>\n" +
+            "                        <td>\n" +
+            "                            <img src='up.png' alt='move up' title='move up' " +
+            "onclick='moveGalleryCS(\"" + library[i] + "\")'>\n" +
+            "                        </td>\n" +
+            "                        <td>\n" +
+            "                            <img src='edit.png' alt='edit' title='edit' " +
+            "onclick='actedit(\"#g-disp-" + library[i] + "\",\"#g-edit-" + library[i] + "\")'>\n" +
+            "                        </td>\n" +
+            "                        <td>\n" +
+            "                            <input type='checkbox' onclick='actdel(\"#g-d-" + library[i] + "\", this)' " +
+            "title='delete?'>\n" +
+            "                            <img src='del.png' alt='delete' title='delete' " +
+            "onclick='removeGalleryCS(\"" + library[i] + "\")' style='display:none;' id='g-d-" + library[i] + "'>\n" +
+            "                        </td>\n" +
+            "                    </tr>\n" +
+            "                    <tr id='g-edit-" + library[i] + "' style='display:none;'>\n" +
+            "                        <td colspan='2'>\n" +
+            "                            <input id='g-e-" + library[i] + "' type='text' value='" + library[i] + "'>\n" +
+            "                        </td>\n" +
+            "                        <td colspan='3'>\n" +
+            "                            <button onclick='editGalleryCS(\"" + library[i] + "\")'>Edit</button>\n" +
+            "                        </td>\n" +
+            "                    </tr>\n" +
+            "                </thead>\n" +
+            "                <tbody>";
+
+        for(let j=0;j<resc.length;j++) {
+
+            html += "                    <tr id='g-" + library[i] + "-e-" + j + "'>\n" +
+                "                        <td>\n" +
+                "                            <img src='/getImg/galleries/" + library[i] + "/" + resc[j][0] + "' " +
+                "alt='" + resc[j][0] + "'>\n" +
+                "                        </td>\n" +
+                "                        <td>\n" +
+                "                            " + resc[j][1] + "\n" +
+                "                        </td>\n" +
+                "                        <td>\n" +
+                "                            <img src='up.png' alt='move up' title='move up' " +
+                "onclick='moveGalleryElementCS(\"" + library[i] + "\", \"" + j + "\")'>\n" +
+                "                        </td>\n" +
+                "                        <td>\n" +
+                "                            <img src='edit.png' alt='edit' title='edit' " +
+                "onclick='actedit(\"#g-" + library[i] + "-e-" + j + "\", " +
+                "\"#g-edit-" + library[i] + "-e-" + j + "\")'>\n" +
+                "                        </td>\n" +
+                "                        <td>\n" +
+                "                            <input type='checkbox' " +
+                "onclick='actdel(\"#g-" + library[i] + "-e-d-" + j + "\", this)' title='delete?'>\n" +
+                "                            <img id='g-" + library[i] + "-e-d-" + j + "' src='del.png' alt='delete' " +
+                "title='delete' onclick='removeGalleryElementCS(\"" + library[i] + "\", \"" + j + "\")' " +
+                "style='display:none;'>\n" +
+                "                        </td>\n" +
+                "                    </tr>\n" +
+                "                    <tr id='g-edit-" + library[i] + "-e-" + j + "' style='display:none;'>\n" +
+                "                        <td>\n" +
+                "                            <img src='/getImg/galleries/" + library[i] + "/" + resc[j][0] + "' " +
+                "alt='" + resc[j][0] + "'>\n" +
+                "                        </td>\n" +
+                "                        <td>\n" +
+                "                            <input id='g-edit-" + library[i] + "-e-" + j + "i' type='text' " +
+                "value='" + resc[j][1] + "'>\n" +
+                "                        </td>\n" +
+                "                        <td colspan='3'>\n" +
+                "                            <button " +
+                "onclick='editGalleryElementCS(\"" + library[i] + "\", \"" + j + "\")'>Edit</button>\n" +
+                "                        </td>\n" +
+                "                    </tr>\n";
+
+        }
+
+        html += "                    <tr id='g-ae-" + library[i] + "'>\n" +
+            "                        <td>\n" +
+            "                            <input id='g-ae-f-" + library[i] + "' type='file'>\n" +
+            "                        </td>\n" +
+            "                        <td>\n" +
+            "                            <input id='g-ae-d-" + library[i] + "' type='text' " +
+            "placeholder='description'>\n" +
+            "                        </td>\n" +
+            "                        <td colspan='3'>\n" +
+            "                            <button onclick='addGalleryElementCS(\"" + library[i] + "\")'>Add" +
+            "</button>\n" +
+            "                        </td>\n" +
+            "                    </tr>\n" +
+            "                </tbody>\n" +
+            "            </table>\n";
+
+    }
+
+    html += "            <table class='ainfobox'>\n" +
+        "                <thead>\n" +
+        "                    <tr>\n" +
+        "                        <td colspan='2'>\n" +
+        "                            <input id='g-a-name' type='text' placeholder='name'>\n" +
+        "                        </td>\n" +
+        "                        <td colspan='3'>\n" +
+        "                            <button onclick='addGalleryCS()'>Add</button>\n" +
+        "                        </td>\n" +
+        "                    </tr>\n" +
+        "                </thead>\n" +
+        "            </table>\n" +
+        "            <div style='text-align:center;'><a href='nomad.html'>return to admin page</a></div>" +
+        "       </div>\n" +
+        "   </div>\n" +
+        "</div>\n" +
+        "<script src='nomad.js'></script>\n" +
+        h.getFoot(false);
+
+    res.write(html, function () {res.end();});
+
+}
+
+
+/***
+ * @function addGallery - adds a gallery to the database and file system
+ *
+ * @param {string} name - Name of the gallery to add
+ * @param {Object} database - the main database object
+ * @param {string[]} forbiddenNames - Array of names blocked by the system or plugins
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ *
+ ***/
+function addGallery(name, database, forbiddenNames, req, res) {
+
+    let library = database.library.galleries,
+        resources = database.resources.galleries;
+
+    console.log("New gallery creation request: " + name);
+
+    if(!library.includes(name) && !forbiddenNames.includes(name)) {
+
+        library.push(name);
+        resources[name] = [];
+
+        database.libToFile("gallery-library", JSON.stringify(library), function(err) {
+
+            database.libToFile("galleries/" + name, "[]", function(err2) {
+
+                fs.mkdir("data/galleries/" + name, function(err3) {
+
+                    if(err || err2 || err3)
+                        res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3,
+                            function(){res.end();});
+
+                    else res.write(data, function(){res.end();});
+
+                });
+
+            });
+
+        });
+
+    } else res.write("ERROR: A gallery of this name already exists or is disallowed!", function(){res.end();});
+
+}
+
+
+/***
+ * @function removeGallery - removes a gallery from the database and file system
+ *
+ * @param {string} name - Name of the gallery to remove
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function removeGallery(name, database, req, res) {
+
+    let library = database.library.galleries,
+        resources = database.resources.galleries;
+
+    console.log("New gallery deletion request: " + name);
+
+    if(library.includes(name)) {
+
+        library.splice(library.indexOf(name), 1);
+        delete resources[name];
+
+        database.libToFile("gallery-library", JSON.stringify(library), function(err){
+
+            fs.unlink("data/galleries/" + name + ".json", function(err2){
+
+                fs.rmdir("data/galleries/" + name, function(err3){
+
+                    if(err || err2 || err3)
+                        res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3,
+                            function(){res.end();});
+
+                    else res.write("SUCCESS!", function(){res.end();});
+
+                });
+
+            });
+
+        });
+
+    } else res.write("ERROR: A gallery of this name does not exist!", function(){res.end();});
+
+}
+
+
+/***
+ * @function editGallery - changes a gallery's name in the database and updates the files in the file system
+ *
+ * @param {string} oldName - Name of the gallery to change from
+ * @param {string} newName - Name of the gallery to change to
+ * @param {Object} database - the main database object
+ * @param {string[]} forbiddenNames - Array of names blocked by the system or plugins
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ *
+ ***/
+function editGallery(oldName, newName, database, forbiddenNames, req, res) {
+
+    let library = database.library.galleries,
+        resources = database.resources.galleries;
+
+    console.log("New gallery renaming request: " + oldName + "->" + newName);
+
+    if(library.includes(oldName)) {
+
+        if(!library.includes(newName) && !forbiddenNames.includes(newName)) {
+
+            library.splice(library.indexOf(oldName), 1, newName);
+
+            if (oldName !== newName) {
+
+                Object.defineProperty(resources, newName, Object.getOwnPropertyDescriptor(resources, oldName));
+                delete resources[oldName];
+
+            }
+
+            database.libToFile("gallery-library", JSON.stringify(library), function(err){
+
+                database.libToFile("galleries/" + oldName, JSON.stringify(resources[newName]),
+                    function(err2){
+
+                        fs.rename("data/galleries/" + oldName + ".json",
+                            "data/galleries/" + newName + ".json", function(err3) {
+
+                                fs.rename("data/galleries/" + oldName,"data/galleries/" + newName,
+                                    function(err4) {
+
+                                        if (err || err2 || err3 || err4)
+                                            res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 + ";" + err4,
+                                                function() {res.end();});
+
+                                        else res.write("SUCCESS!", function() {res.end();});
+
+                                    });
+
+                            });
+
+                    });
+
+            });
+
+        } else res.write("ERROR: A gallery of this name already exists or is disallowed!",
+            function(){res.end();});
+
+    } else res.write("ERROR: A gallery of this name does not exist!", function(){res.end();});
+
+}
+
+
+/***
+ * @function moveGallery - moves the position of a gallery within the database and up by one position
+ *
+ * @param {string} name - Name of the gallery to move
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function moveGallery(name, database, req, res) {
+
+    let library = database.library.galleries;
+
+    console.log("New gallery move request: " + name);
+
+    if(library.includes(name)) {
+
+        if (library.indexOf(name) > 0)
+            library.splice(library.indexOf(name) - 1, 0, library.splice(library.indexOf(name), 1)[0]);
+
+        database.libToFile("gallery-library", JSON.stringify(library), function (err) {
+
+            if (err) res.write("Error while writing to disk!;" + err, function () {
+                res.end();
+            });
+            else res.write("SUCCESS!", function () {
+                res.end();
+            });
+
+        });
+
+    } else res.write("ERROR: A gallery of this name does not exist!", function(){res.end();});
+
+}
+
+
+/***
+ * @function addGalleryElement - add an image to the gallery and updates database and file system
+ *
+ * @param {string} name - Name of the gallery to add to
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function addGalleryElement(name, database, req, res) {
+
+    let resources = database.resources.galleries;
+
+    if (req.method === "POST") {
+
+        console.log("POST request received.");
+
+        let form = formidable.IncomingForm(),
+            field = "",
+            fileName = "",
+            error = "";
+
+        form.parse(req);
+
+        form.on("field", function(key, value){
+
+            console.log("Field received: " + key + "=>" + value);
+
+            if(key === "desc")
+                field = value;
+
+        });
+
+        form.on("fileBegin", function(key, file) {
+
+            fileName = file.name;
+            file.path = "data/galleries/" + name + "/" + file.name;
+
+        });
+
+        form.on("file", function (key, file) {
+
+            console.log("File received: " + file.name);
+
+            if(file.size > MAX_FILE_SIZE) {
+
+                res.writeHead(413,{"Content-Type": "text/html"});
+                res.write("The file is too large!");
+                error += "413[MAX_FILE_SIZE_EXCEEDED];";
+
+            }
+
+            res.write("File uploaded!\n");
+
+        });
+
+        req.on("end", function () {
+
+            console.log("POST request ended: " + fileName + ":" + field);
+
+            resources[name].push([fileName, field]);
+
+            database.libToFile("galleries/" + name, JSON.stringify(resources[name]),function(err){
+
+                if(err) {
+
+                    res.write("\nError while writing to disk!;" + err);
+                    error += err + ";";
+
+                }
+
+                if(error === "") res.write("File uploaded successfully!", function(){res.end();});
+                else res.write("The following errors were thrown:\n" + error, function(){res.end();});
+
+            });
+
+        });
+
+        form.on("error", function (err) {
+
+            res.write("\nError while uploading file(s)!;" + err, function(){res.end();});
+
+        });
+
+    } else {
+
+        //Only allow POST connections here
+        res.writeHead(405,{"Allow": "POST"});
+        res.write("Only POST connections allowed here!", function(){res.end();});
+
+    }
+
+}
+
+
+/***
+ * @function removeGalleryElement - removes an image from the gallery and updates database and file system
+ *
+ * @param {string} name - Name of the gallery to remove from
+ * @param {string} id - Id of the gallery element to remove
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function removeGalleryElement(name, id, database, req, res) {
+
+    let resources = database.resources.galleries;
+
+    if(resources.hasOwnProperty(name) && resources[name].length >= id) {
+
+        let fileName = resources[name][id][0];
+        resources[name].splice(id, 1);
+
+        database.libToFile("galleries/" + name, JSON.stringify(resources[name]),function(err){
+
+            fs.unlink("data/galleries/" + name + "/" + fileName,function(err2){
+
+                if(err || err2)
+                    res.write("Error while writing to disk!;" + err + ";" + err2, function(){res.end();});
+
+                else res.write(data, function(){res.end();});
+
+            });
+
+        });
+
+    } else res.write("Element removal failed. The element was not found.", function(){res.end();});
+
+}
+
+
+/***
+ * @function editGalleryElement - edit an element within a gallery
+ *
+ * @param {string} name - Name of the gallery to remove from
+ * @param {string} id - Id of the gallery element to remove
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function editGalleryElement(name, id, database, req, res) {
+
+    let resources = database.resources.galleries;
+
+    if (req.method === "POST") {
+
+        console.log("POST request received.");
+
+        let form = formidable.IncomingForm(),
+            field = "";
+
+        form.parse(req);
+
+        form.on("field", function(key, value){
+
+            console.log("Field received: " + key + "=>" + value);
+
+            if(key === "desc") field = value;
+
+        });
+
+        req.on("end", function () {
+
+            console.log("POST request ended: " + field);
+
+            resources[name][id][1] = field;
+
+            database.libToFile("galleries/" + name,
+                JSON.stringify(resources[name]),function(err){
+
+                    if(err) res.write("\nError while writing to disk!;" + err,function(){res.end();});
+                    else res.write("Data successfully received!", function(){res.end();});
+
+                });
+
+        });
+
+        form.on("error", function (err) {
+
+            res.write("\nError while uploading file(s)!;" + err, function(){res.end();});
+
+        });
+
+    } else {
+
+        //Only allow POST connections here
+        res.writeHead(405,{"Allow": "POST"});
+        res.write("Only POST connections allowed here!", function(){res.end();});
+
+    }
+
+}
+
+
+/***
+ * @function moveGalleryElement - move an image within a gallery, updating the database
+ *
+ * @param {string} name - Name of the gallery to remove from
+ * @param {string} id - Id of the gallery element to remove
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function moveGalleryElement(name, id, database, req, res) {
+
+    let library = database.library.galleries,
+        resources = database.resources.galleries;
+
+    if(resources.hasOwnProperty(name) && resources[name].length >= id) {
+
+        if(id !== "0") resources[name].splice(id - 1, 0, resources[name].splice(id, 1)[0]);
+
+        database.libToFile("gallery-library", JSON.stringify(library),function(err) {
+
+            if (err) res.write("Error while writing to disk!;" + err + ";" + data,function () {res.end();});
+            else res.write(data, function () {res.end();});
+
+        });
+
+    } else res.write("Element moving failed. The element was not found.", function(){res.end();});
+
+}
+
+
+/***
+ * @function getGallery - Dynamically creates a HTML page over a given multipage document / pdf dataset
+ *
+ * @param {string} docid - the id of the document resources Array from the corresponding main database object entry
+ * @param {Object} resources - the document resources Object from the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function getDocument(docid, resources, req, res) {
+
+    let name = "MISSINGNAME",
+        document = {};
+
+    if(!resources.hasOwnProperty(docid))
+        console.error("ERROR: Requested document \"" + docid + "\" not found.");
+    else document = resources[docid]
+
+    if(document.hasOwnProperty("name"))
+        name = document.name;
+
+    let html = h.getHead(getBookReaderHead(), f.lang("Detailed View"), name) +
         "<div id='content'>\n" +
         "    <div id='personspace'>\n" +
         "        <div id='personcontent'>\n" +
@@ -52,32 +668,32 @@ function getDocument(document, library, callback) {
     if(document.hasOwnProperty("date"))
         html += "<tr>\n<th>" + f.lang("Published") + "</th>\n<td>" + document.date + "</td>\n</tr>\n";
 
-    if(document.hasOwnProperty("document"))
-        html += "<tr>\n<th>" + f.lang("File") + "</th>\n<td><a href='getDoc/" + document.document
+    if(document.hasOwnProperty("file"))
+        html += "<tr>\n<th>" + f.lang("File") + "</th>\n<td><a href='getDoc/documents/" + document.file
             + "' target='_blank'>" + document.document + "</a></td>\n</tr>\n";
 
     if(document.hasOwnProperty("description"))
         html += "<tr>\n<th>" + f.lang("Description") + "</th>\n<td>" + document.description
             + "</td>\n</tr>\n";
 
-    if(document.hasOwnProperty("links")) {
+    if(document.hasOwnProperty("seealso")) {
 
         html += "<tr>\n<th>" + f.lang("See Also") + "</th>\n<td>";
 
-        for(let i=0; i<document.links.length; i++) {
+        for(let i=0; i<document.seealso.length; i++) {
 
-            let res = library[document.links[i]];
-            html += "<a href='/" + document.links[i] + "'>";
+            let res = resources[document.seealso[i]];
+            html += "<a href='/" + document.seealso[i] + "'>";
 
             if(res.hasOwnProperty("authors"))
                 html += res.authors.join(", ") + ": ";
 
             else html += "[" + f.lang("unknown") + "]: ";
 
-            if(res.hasOwnProperty("title"))
-                html += res.title + ". ";
+            if(res.hasOwnProperty("name"))
+                html += res.name + ". ";
 
-            else html += "[" + document.links[i] + "]. ";
+            else html += "[" + document.seealso[i] + "]. ";
 
             if(res.hasOwnProperty("date"))
                 html += res.date;
@@ -92,463 +708,20 @@ function getDocument(document, library, callback) {
 
     html += "</tbody>\n</table>\n";
     html += "</div>\n</div>\n</div>\n";
-    html += h.getFoot(false);
-    callback(html);
+
+    html += h.getFoot("");
+
+    res.write(html, function () {res.end();});
 }
 
 
 /***
- * Creates a HTML over a given gallery dataset
- * parameters: gallery: meta data object, name: gallery name, callback: callback
- ***/
-function getGallery(gallery, name, callback) {
-
-    let html = h.getHead(true, false, f.lang("Detailed View"), name) +
-        "<div id='content'>\n" +
-        "    <div id='personspace'>\n" +
-        "        <div id='personcontent'>\n" +
-        "            <div id='persontitle'>\n" +
-        "                <h3>" + f.lang("Gallery") + ": " + name + "</h3>\n" +
-        "            </div>\n" +
-        "            <div class='persongallery'>\n";
-
-    for(let i=0;i<gallery.length;i++) {
-
-        html +="<div class='persongalleryelement'>\n";
-        html += "<img class='gridc1r2' src='/getImg/galleries/" + name + "/" + gallery[i][0]
-            + "' onclick='lightbox(" + i + ");' alt='" + name + "'>";
-        html += "<br><span class='gridc1r1'>" + gallery[i][1] + "</span>\n";
-        html += "</div>\n";
-
-    }
-
-    html += "</div>\n</div>\n</div>\n</div>\n";
-    html += h.getFoot(true);
-    callback(html);
-
-}
-
-
-/***
- * adds a gallery to the library and file system
- ***/
-function addGallery(name, library, resources, forbiddenNames, callback) {
-
-    console.log("New gallery creation request: " + name);
-
-    if(!library.includes(name) && !forbiddenNames.includes(name)) {
-
-        library.push(name);
-        resources[name] = [];
-        callback("SUCCESS!", false);
-
-    } else {
-
-        console.log("ERROR: A gallery of that name already exists or is disallowed!");
-
-        callback("ERROR: A gallery of this name already exists or is disallowed!", true);
-
-    }
-
-}
-
-
-/***
- * changes a gallery name
- ***/
-function editGallery(oldName, newName, library, resources, forbiddenNames, callback) {
-
-    console.log("New gallery renaming request: " + oldName + "->" + newName);
-
-    if(library.includes(oldName)) {
-
-        if(!library.includes(newName) && !forbiddenNames.includes(newName)) {
-
-            library.splice(library.indexOf(oldName), 1, newName);
-
-            if (oldName !== newName) {
-
-                Object.defineProperty(resources, newName, Object.getOwnPropertyDescriptor(resources, oldName));
-                delete resources[oldName];
-
-            }
-
-            callback("SUCCESS!");
-
-        } else {
-
-            console.log("ERROR: A gallery of that name already exists or is disallowed!");
-
-            callback("ERROR: A gallery of this name already exists or is disallowed!", true);
-
-        }
-
-    } else {
-
-        console.log("ERROR: A gallery of that name does not exist!");
-
-        callback("ERROR: A gallery of that name does not exist!", true);
-
-    }
-
-}
-
-
-/***
- * removes a gallery from the library and file system
- ***/
-function removeGallery(name, library, resources, callback) {
-
-    console.log("New gallery deletion request: " + name);
-
-    if(library.includes(name)) {
-
-        library.splice(library.indexOf(name), 1);
-        delete resources[name];
-        callback("SUCCESS!");
-
-    } else {
-
-        console.log("ERROR: A gallery of that name does not exist!");
-
-        callback("ERROR: A gallery of this name does not exist!", true);
-
-    }
-
-}
-
-
-/***
- * moves the position of a gallery within the library and file system up by one position
- ***/
-function moveGallery(name, library, resources, callback) {
-
-    if(library.indexOf(name) > 0)
-        library.splice(library.indexOf(name) - 1, 0, library.splice(library.indexOf(name), 1)[0]);
-
-    callback("SUCCESS!");
-
-}
-
-
-/***
- * add an image to the gallery
- ***/
-function addGalleryElement(name, library, resources, callback) {
-
-    callback("SUCCESS!");
-
-}
-
-
-/***
- * remove an image from the gallery
- ***/
-function removeGalleryElement(name, id, library, resources, callback) {
-
-    if(resources.hasOwnProperty(name) && resources[name].length >= id) {
-
-        let fileName = resources[name][id][0];
-        resources[name].splice(id, 1);
-        callback(fileName, "SUCCESS!");
-
-    } else
-        callback("", "Element removal failed. The element was not found.", true)
-
-}
-
-
-/***
- * move an image in the gallery
- ***/
-function moveGalleryElement(name, id, library, resources, callback) {
-
-    if(resources.hasOwnProperty(name) && resources[name].length >= id) {
-
-        if(id !== "0")
-            resources[name].splice(id - 1, 0, resources[name].splice(id, 1)[0]);
-
-        callback("SUCCESS!");
-
-    } else
-        callback("Element moving failed. The element was not found.")
-
-}
-
-
-/***
- * add an image to the gallery
- ***/
-function editGalleryElement(name, library, resources, callback) {
-
-    callback("SUCCESS!");
-
-}
-
-
-/***
- * Creates a HTML page for managing the galleries
+ * @function adminDocument - Creates a HTML page for managing the documents
  *
- * structure of gallery json:
- *
- * Array of entries:
- * -> two entry array:
- *     -> 0: image file name
- *     -> 1: image description
- *
- ***/
-function adminGallery(library, resources, callback) {
-
-    let html = h.getHead(false, false, "Gallery Management Tool",
-        "Gallery Management Tool") +
-        "<div id='content'>\n" +
-        "    <div id='personspace'>\n" +
-        "        <div id='personcontent'>\n" +
-        "            <div id='persontitle'>\n" +
-        "                <h3>Available Galleries</h3>\n" +
-        "            </div>\n";
-
-    for(let i=0;i<library.length;i++) {
-
-        let resc = resources[library[i]];
-
-        html += "            <table class='ainfobox' id='g-" + library[i] + "'>\n" +
-            "                <thead>\n" +
-            "                    <tr id='g-disp-" + library[i] + "'>\n" +
-            "                        <td colspan='2'>\n" +
-            "                            <b>" + library[i] + "</b>\n" +
-            "                        </td>\n" +
-            "                        <td>\n" +
-            "                            <img src='up.png' alt='move up' title='move up' " +
-            "onclick='moveGallery(\"" + library[i] + "\")'>\n" +
-            "                        </td>\n" +
-            "                        <td>\n" +
-            "                            <img src='edit.png' alt='edit' title='edit' " +
-            "onclick='actedit(\"#g-disp-" + library[i] + "\",\"#g-edit-" + library[i] + "\")'>\n" +
-            "                        </td>\n" +
-            "                        <td>\n" +
-            "                            <input type='checkbox' onclick='actdel(\"#g-d-" + library[i] + "\", this)' " +
-            "title='delete?'>\n" +
-            "                            <img src='del.png' alt='delete' title='delete' " +
-            "onclick='removeGallery(\"" + library[i] + "\")' style='display:none;' id='g-d-" + library[i] + "'>\n" +
-            "                        </td>\n" +
-            "                    </tr>\n" +
-            "                    <tr id='g-edit-" + library[i] + "' style='display:none;'>\n" +
-            "                        <td colspan='2'>\n" +
-            "                            <input id='g-e-" + library[i] + "' type='text' value='" + library[i] + "'>\n" +
-            "                        </td>\n" +
-            "                        <td colspan='3'>\n" +
-            "                            <button onclick='editGallery(\"" + library[i] + "\")'>Edit</button>\n" +
-            "                        </td>\n" +
-            "                    </tr>\n" +
-            "                </thead>\n" +
-            "                <tbody>";
-
-        for(let j=0;j<resc.length;j++) {
-
-            html += "                    <tr id='g-" + library[i] + "-e-" + j + "'>\n" +
-                "                        <td>\n" +
-                "                            <img src='/getImg/galleries/" + library[i] + "/" + resc[j][0] + "' " +
-                "alt='" + resc[j][0] + "'>\n" +
-                "                        </td>\n" +
-                "                        <td>\n" +
-                "                            " + resc[j][1] + "\n" +
-                "                        </td>\n" +
-                "                        <td>\n" +
-                "                            <img src='up.png' alt='move up' title='move up' " +
-                "onclick='moveGalleryElement(\"" + library[i] + "\", \"" + j + "\")'>\n" +
-                "                        </td>\n" +
-                "                        <td>\n" +
-                "                            <img src='edit.png' alt='edit' title='edit' " +
-                "onclick='actedit(\"#g-" + library[i] + "-e-" + j + "\", " +
-                "\"#g-edit-" + library[i] + "-e-" + j + "\")'>\n" +
-                "                        </td>\n" +
-                "                        <td>\n" +
-                "                            <input type='checkbox' " +
-                "onclick='actdel(\"#g-" + library[i] + "-e-d-" + j + "\", this)' title='delete?'>\n" +
-                "                            <img id='g-" + library[i] + "-e-d-" + j + "' src='del.png' alt='delete' " +
-                "title='delete' onclick='removeGalleryElement(\"" + library[i] + "\", \"" + j + "\")' " +
-                "style='display:none;'>\n" +
-                "                        </td>\n" +
-                "                    </tr>\n" +
-                "                    <tr id='g-edit-" + library[i] + "-e-" + j + "' style='display:none;'>\n" +
-                "                        <td>\n" +
-                "                            <img src='/getImg/galleries/" + library[i] + "/" + resc[j][0] + "' " +
-                "alt='" + resc[j][0] + "'>\n" +
-                "                        </td>\n" +
-                "                        <td>\n" +
-                "                            <input id='g-edit-" + library[i] + "-e-" + j + "i' type='text' " +
-                "value='" + resc[j][1] + "'>\n" +
-                "                        </td>\n" +
-                "                        <td colspan='3'>\n" +
-                "                            <button " +
-                "onclick='editGalleryElement(\"" + library[i] + "\", \"" + j + "\")'>Edit</button>\n" +
-                "                        </td>\n" +
-                "                    </tr>\n";
-
-        }
-
-        html += "                    <tr id='g-ae-" + library[i] + "'>\n" +
-            "                        <td>\n" +
-            "                            <input id='g-ae-f-" + library[i] + "' type='file'>\n" +
-            "                        </td>\n" +
-            "                        <td>\n" +
-            "                            <input id='g-ae-d-" + library[i] + "' type='text' " +
-            "placeholder='description'>\n" +
-            "                        </td>\n" +
-            "                        <td colspan='3'>\n" +
-            "                            <button onclick='addGalleryElement(\"" + library[i] + "\")'>Add" +
-            "</button>\n" +
-            "                        </td>\n" +
-            "                    </tr>\n" +
-            "                </tbody>\n" +
-            "            </table>\n";
-
-    }
-
-    html += "            <table class='ainfobox'>\n" +
-        "                <thead>\n" +
-        "                    <tr>\n" +
-        "                        <td colspan='2'>\n" +
-        "                            <input id='g-a-name' type='text' placeholder='name'>\n" +
-        "                        </td>\n" +
-        "                        <td colspan='3'>\n" +
-        "                            <button onclick='addGallery()'>Add</button>\n" +
-        "                        </td>\n" +
-        "                    </tr>\n" +
-        "                </thead>\n" +
-        "            </table>\n" +
-        "            <div style='text-align:center;'><a href='nomad.html'>return to admin page</a></div>" +
-        "       </div>\n" +
-        "   </div>\n" +
-        "</div>\n" +
-        "<script src='nomad.js'></script>\n" +
-        h.getFoot(false);
-    callback(html);
-
-}
-
-
-/***
- * adds a document to the library and file system
- ***/
-function addDocument(name, id, library, resources, forbiddenNames, callback) {
-
-    console.log("New document creation request: " + id);
-
-    if(!library.includes(id) && !forbiddenNames.includes(id)) {
-
-        library.push(id);
-        resources[id] = {
-            name: name,
-            authors: [],
-            coauthors: [],
-            pageCount: "",
-            date: "",
-            file: "",
-            description: "",
-            contributor: "",
-            seealso: []
-        };
-        callback("SUCCESS!", false);
-
-    } else {
-
-        console.log("ERROR: A document of that name already exists or is disallowed!");
-
-        callback("ERROR: A document of this name already exists or is disallowed!", true);
-
-    }
-
-}
-
-
-/***
- * changes a document name
- ***/
-function editDocument(oldName, newName, library, resources, forbiddenNames, callback) {
-
-    console.log("New document renaming request: " + oldName + "->" + newName + " (" + docId + ")");
-
-    if(library.includes(oldName)) {
-
-        if(!library.includes(newName) && !forbiddenNames.includes(newName)) {
-
-            library.splice(library.indexOf(oldName), 1, newName);
-
-            if (oldName !== newName) {
-
-                Object.defineProperty(resources, newName, Object.getOwnPropertyDescriptor(resources, oldName));
-                delete resources[oldName];
-                resources[newName].name = newName.replace("-"," ")
-
-            }
-
-            callback("SUCCESS!");
-
-        } else {
-
-            console.log("ERROR: A document of that name already exists or is disallowed!");
-
-            callback("ERROR: A document of this name already exists or is disallowed!", true);
-
-        }
-
-    } else {
-
-        console.log("ERROR: A document of that name does not exist!");
-
-        callback("ERROR: A document of that name does not exist!", true);
-
-    }
-
-}
-
-
-/***
- * removes a document from the library and file system
- ***/
-function removeDocument(name, library, resources, callback) {
-
-    console.log("New document deletion request: " + name);
-
-    if(library.includes(name)) {
-
-        let fileName = "";
-
-        if(resources[name].hasOwnProperty("file"))
-            fileName = resources[name].file + "";
-
-        library.splice(library.indexOf(name), 1);
-        delete resources[name];
-        callback("SUCCESS (" + fileName + ")!", fileName, false);
-
-    } else {
-
-        console.log("ERROR: A document of that name does not exist!");
-
-        callback("ERROR: A document of this name does not exist!", "", true);
-
-    }
-
-}
-
-
-/***
- * moves the position of a document within the library and file system up by one position
- ***/
-function moveDocument(name, library, resources, callback) {
-
-    if(library.indexOf(name) > 0)
-        library.splice(library.indexOf(name) - 1, 0, library.splice(library.indexOf(name), 1)[0]);
-
-    callback("SUCCESS!");
-
-}
-
-
-/***
- * Creates a HTML page for managing the documents
+ * @param {string[]} library - the document library Array from the main database object
+ * @param {Object} resources - the document resources Object from the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
  *
  * structure of document json (json name is hyphenated "name" entry):
  *
@@ -563,7 +736,7 @@ function moveDocument(name, library, resources, callback) {
  * seealso: Array of ids of related documents
  *
  ***/
-function adminDocument(library, resources, callback) {
+function adminDocument(library, resources, req, res) {
 
     let html = h.getHead(false, false, "Document Management Tool",
         "Document Management Tool") +
@@ -586,7 +759,7 @@ function adminDocument(library, resources, callback) {
             "                        </td>\n" +
             "                        <td>\n" +
             "                            <img src='up.png' alt='move up' title='move up' " +
-            "onclick='moveDocument(\"" + library[i] + "\")'>\n" +
+            "onclick='moveDocumentCS(\"" + library[i] + "\")'>\n" +
             "                        </td>\n" +
             "                        <td>\n" +
             "                            <img src='edit.png' alt='edit' title='edit' " +
@@ -596,7 +769,7 @@ function adminDocument(library, resources, callback) {
             "                            <input type='checkbox' onclick='actdel(\"#g-d-" + library[i] + "\", this)' " +
             "title='delete?'>\n" +
             "                            <img src='del.png' alt='delete' title='delete' " +
-            "onclick='removeDocument(\"" + library[i] + "\")' style='display:none;' id='g-d-" + library[i] + "'>\n" +
+            "onclick='removeDocumentCS(\"" + library[i] + "\")' style='display:none;' id='g-d-" + library[i] + "'>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +
             "                    <tr id='g-edit-" + library[i] + "' style='display:none;'>\n" +
@@ -604,7 +777,7 @@ function adminDocument(library, resources, callback) {
             "                            <input id='g-e-" + library[i] + "' type='text' value='" + resc.name + "'>\n" +
             "                        </td>\n" +
             "                        <td colspan='3'>\n" +
-            "                            <button onclick='editDocument(\"" + library[i] + "\")'>Edit</button>\n" +
+            "                            <button onclick='editDocumentCS(\"" + library[i] + "\")'>Edit</button>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +
             "                </thead>\n" +
@@ -618,7 +791,7 @@ function adminDocument(library, resources, callback) {
             "                    <tr id='g-" + library[i] + "-add-doc' style='display:none;'>\n" +
             "                        <td colspan='5'>\n" +
             "                            <input id='g-" + library[i] + "-f-in' type='file' accept='.pdf'>\n" +
-            "                            <button onclick='uploadDoc(\"" + library[i] + "\")'>Upload</button><br>\n" +
+            "                            <button onclick='uploadDocumentCS(\"" + library[i] + "\")'>Upload</button><br>\n" +
             "                            <p>This might take a few seconds, please be patient!</p>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +
@@ -678,7 +851,7 @@ function adminDocument(library, resources, callback) {
             "                    </tr>\n" +
             "                    <tr>\n" +
             "                        <td colspan='5'>\n" +
-            "                            <button onclick='editDocumentMeta(\"" + library[i] + "\")'>Update metadata" +
+            "                            <button onclick='editDocumentMetaCS(\"" + library[i] + "\")'>Update metadata" +
             "</button>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +
@@ -700,7 +873,7 @@ function adminDocument(library, resources, callback) {
         "                            <input id='g-a-name' type='text' placeholder='name'>\n" +
         "                        </td>\n" +
         "                        <td colspan='3'>\n" +
-        "                            <button onclick='addDocument()'>Add</button>\n" +
+        "                            <button onclick='addDocumentCS()'>Add</button>\n" +
         "                        </td>\n" +
         "                    </tr>\n" +
         "                </thead>\n" +
@@ -711,7 +884,459 @@ function adminDocument(library, resources, callback) {
         "</div>\n" +
         "<script src='nomad.js'></script>\n" +
         h.getFoot(false);
-    callback(html);
+
+    res.write(html,function(){res.end();});
+
+}
+
+
+/***
+ * @function addDocument - adds a document to the database and file system
+ *
+ * @param {Object} database - the main database object
+ * @param {string[]} forbiddenNames - Array of names blocked by the system or plugins
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function addDocument(database, forbiddenNames, req, res) {
+
+    let library = database.library.documents,
+        resources = database.resources.documents;
+
+    console.log("New document creation request.");
+
+    if (req.method === "POST") {
+
+        console.log("POST request received.");
+
+        let form = formidable.IncomingForm(),
+            field = "",
+            fileName = "",
+            error = "";
+
+        form.parse(req);
+
+        form.on("field", function(key, value){
+
+            console.log("Field received: " + key + "=>" + value);
+
+            if(key === "name") field = value;
+
+        });
+
+        form.on("fileBegin", function(key, file) {
+
+            fileName = file.name;
+            file.path = "data/documents/" + name + "/" + file.name;
+
+        });
+
+        form.on("file", function (key, file) {
+
+            console.log("File received: " + file.name);
+
+            if(file.size > MAX_FILE_SIZE) {
+
+                res.writeHead(413,{"Content-Type": "text/html"});
+                res.write("The file is too large!");
+                error += "413;";
+
+            }
+
+            res.write("File(s) uploaded!\n");
+
+        });
+
+        req.on("end", function () {
+
+            console.log("POST request ended: " + fileName + ":" + field);
+
+            let docId = field.replace(/\s/g,"-");
+
+            if(!library.includes(id) && !forbiddenNames.includes(id)) {
+
+                library.push(id);
+                resources[id] = {
+                    name: name,
+                    authors: [],
+                    coauthors: [],
+                    pageCount: "",
+                    date: "",
+                    file: "",
+                    description: "",
+                    contributor: "",
+                    seealso: []
+                };
+
+                resources[docId]["file"] = fileName;
+
+                let pdfimg = new PDFImage("data/documents/" + docId + "/" + fileName);
+
+                pdfimg.numberOfPages().then(function(pageCount){
+
+                    resources[docId]["pageCount"] = pageCount;
+
+                });
+
+                database.libToFile("documents/" + docId, JSON.stringify(resources[docId]),
+                    function (err) {
+
+                    database.libToFile("document-library", JSON.stringify(library), function (err2) {
+
+                        fs.mkdir("data/documents/" + docId, function (err3) {
+
+                            pdfimg.convertFile().then(function () {
+
+                                console.log("Document successfully converted to images!");
+
+                                if (err || err2 || err3)
+                                    res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
+                                        err3, function () {res.end();});
+
+                                else res.write("SUCCESS!", function () {res.end();});
+
+                            }, function(error) {
+
+                                console.log("Document conversion failed!");
+
+                                if (err || err2 || err3)
+                                    res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
+                                        err3 + ";" + error, function () {res.end();});
+
+                                else res.write(data, function () {res.end();});
+
+                            });
+
+                        });
+
+                    });
+
+                });
+
+            } else res.write("ERROR: A document of this name already exists or is disallowed!", function(){res.end();});
+
+        });
+
+        form.on("error", function (err) {
+
+            res.write("\nError while uploading file(s)!;" + err,function(){res.end();});
+
+        });
+
+    } else {
+
+        //Only allow POST connections here
+        res.writeHead(405,{"Allow": "POST"});
+        res.write("Only POST connections allowed here!",function(){res.end();});
+
+    }
+
+}
+
+
+/***
+ * @function removeDocument - removes a document from the database and file system
+ *
+ * @param {string} name - the id of the document to be removed
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function removeDocument(name, database, req, res) {
+
+    let library = database.library.documents,
+        resources = database.resources.documents;
+
+    console.log("New document deletion request: " + name);
+
+    if(library.includes(name)) {
+
+        let fileName = "";
+
+        if(resources[name].hasOwnProperty("file")) fileName = resources[name].file + "";
+
+        library.splice(library.indexOf(name), 1);
+        delete resources[name];
+
+        database.libToFile("document-library", JSON.stringify(library), function(err){
+
+            fs.unlink("data/documents/" + name + ".json", function(err2){
+
+                fs.unlink("data/documents/" + fileName, function(err3){
+
+                    fs.rmdir("data/documents/" + name, function(err4){
+
+                        if(err || err2 || err3 || err4)
+                            res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 + ";" +
+                                err4, function(){res.end();});
+
+                        else res.write("SUCCESS (" + fileName + ")!", function(){res.end();});
+
+                    });
+
+                });
+
+            });
+
+        });
+
+    } else res.write("ERROR: A document of this name does not exist!", function(){res.end();});
+
+}
+
+
+/***
+ * @function editDocument - changes a document name and updates database and filesystem
+ *
+ * @param {string} oldName - the id of the document to be changed from
+ * @param {string} newName - the id of the document to be changed to
+ * @param {Object} database - the main database object
+ * @param {string[]} forbiddenNames - Array of names blocked by the system or plugins
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function editDocument(oldName, newName, database, forbiddenNames, req, res) {
+
+    let library = database.library.documents,
+        resources = database.resources.documents;
+
+    console.log("New document renaming request: " + oldName + "->" + newName);
+
+    if(library.includes(oldName)) {
+
+        if(!library.includes(newName) && !forbiddenNames.includes(newName)) {
+
+            library.splice(library.indexOf(oldName), 1, newName);
+
+            if (oldName !== newName) {
+
+                Object.defineProperty(resources, newName, Object.getOwnPropertyDescriptor(resources, oldName));
+                delete resources[oldName];
+                resources[newName].name =
+                    f.dehyphenate(newName);
+
+            }
+
+            database.libToFile("document-library", JSON.stringify(library), function(err){
+
+                database.libToFile("documents/" + oldName, JSON.stringify(resources[newName]),
+                    function(err2){
+
+                    fs.rename("data/documents/" + oldName + ".json",
+                        "data/documents/" + newName + ".json", function(err3) {
+
+                        fs.rename("data/documents/" + oldName, "data/documents/" + newName,
+                            function(err4) {
+
+                            if (err || err2 || err3 || err4)
+                                res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 + ";" +
+                                    err4, function() {res.end();});
+
+                            else res.write(data, function() {res.end();});
+
+                        });
+
+                    });
+
+                });
+
+            });
+
+        } else res.write("ERROR: A document of that name already exists or is disallowed!",
+            function(){res.end();});
+
+    } else res.write("ERROR: A document of that name does not exist!", function(){res.end();});
+
+}
+
+
+/***
+ * @function moveDocument - moves the position of a document within the library and file system up by one position
+ *
+ * @param {string} name - the id of the document to be moved
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function moveDocument(name, database, res, req) {
+
+    let library = database.library.documents;
+
+    console.log("New document move request: " + name);
+
+    if(library.includes(name)) {
+
+        if(library.indexOf(name) > 0)
+            library.splice(library.indexOf(name) - 1, 0,
+                library.splice(library.indexOf(name), 1)[0]);
+
+        database.libToFile("document-library", JSON.stringify(library), function(err){
+
+            if(err) res.write("Error while writing to disk!;" + err, function(){res.end();});
+            else res.write(data, function(){res.end();});
+
+        });
+
+    } else res.write("ERROR: A document of that name does not exist!", function(){res.end();});
+
+}
+
+
+/***
+ * @function uploadDocument - replaces the file of a document in the database and file system
+ *
+ * @param {string} name - the id of the document to be uploaded
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function uploadDocument(name, database, req, res) {
+
+    let resources = database.resources.documents;
+
+    console.log("New document upload request.");
+
+    if (req.method === "POST") {
+
+        console.log("POST request received.");
+
+        let form = formidable.IncomingForm(),
+            fileName = "",
+            error = "";
+
+        form.parse(req);
+
+        form.on("fileBegin", function(key, file) {
+
+            fileName = file.name;
+            file.path = "data/documents/" + name + "/" + file.name;
+
+        });
+
+        form.on("file", function (key, file) {
+
+            console.log("File received: " + file.name);
+
+            if(file.size > MAX_FILE_SIZE) {
+
+                res.writeHead(413,{"Content-Type": "text/html"});
+                res.write("The file is too large!");
+                error += "413;";
+
+            }
+
+            res.write("File(s) uploaded!\n");
+
+        });
+
+        req.on("end", function () {
+
+            console.log("POST request ended: " + fileName);
+
+            resources[name]["file"] = fileName;
+
+            database.libToFile("documents/" + name, JSON.stringify(resources[name]),function(err){
+
+                if(err) {
+
+                    res.write("\nError while writing to disk!;" + err);
+                    error += err + ";";
+
+                }
+
+                let pdfimg = new PDFImage("data/documents/" + name + "/" + fileName);
+
+                resources[name]["pageCount"] = pdfimg.numberOfPages();
+
+                pdfimg.convertFile().then(function () {
+
+                    console.log("Document successfully converted to images!");
+
+                    if(error === "") res.write("File uploaded successfully!", function(){res.end();});
+                    else res.write("The following errors were thrown:\n" + error, function(){res.end();});
+
+                });
+
+            });
+
+        });
+
+        form.on("error", function (err) {
+
+            res.write("\nError while uploading file(s)!;" + err + ";" + data,function(){res.end();});
+
+        });
+
+    } else {
+
+        //Only allow POST connections here
+        res.writeHead(405,{"Allow": "POST"});
+        res.write("Only POST connections allowed here!",function(){res.end();});
+
+    }
+
+}
+
+
+/***
+ * @function editDocumentMeta - edits the metadata of a document and updates the database and filesystem
+ *
+ * @param {string} name - the id of the document to be edited
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function editDocumentMeta(name, database, req, res) {
+
+    let resources = database.resources.documents;
+
+    console.log("New document meta edit request.");
+
+    if (req.method === "POST") {
+
+        console.log("POST request received.");
+
+        let form = formidable.IncomingForm(),
+            fields = {};
+
+        form.parse(req);
+
+        form.on("field", function(key, value){
+
+            console.log("Field received: " + key + "=>" + value);
+
+            fields[key] = value;
+
+        });
+
+        req.on("end", function () {
+
+            console.log("POST request ended: " + fields);
+
+            if(fields.hasOwnProperty("author")) resources[name]["authors"] = fields.author.split(",");
+            if(fields.hasOwnProperty("coauthor")) resources[name]["coauthors"] = fields.coauthor.split(",");
+            if(fields.hasOwnProperty("date")) resources[name]["date"] = fields.date;
+            if(fields.hasOwnProperty("desc")) resources[name]["description"] = fields.desc;
+            if(fields.hasOwnProperty("contributor")) resources[name]["contributor"] = fields.contributor;
+            if(fields.hasOwnProperty("seealso")) resources[name]["seealso"] = fields.seealso.split(",");
+
+            res.write("Document updated successfully!", function(){res.end();});
+
+        });
+
+        form.on("error", function (err) {
+
+            res.write("\nError while updating document!;" + err, function(){res.end();});
+
+        });
+
+    } else {
+
+        //Only allow POST connections here
+        res.writeHead(405,{"Allow": "POST"});
+        res.write("Only POST connections allowed here!",function(){res.end();});
+
+    }
 
 }
 
@@ -740,32 +1365,192 @@ function getBookScript(document) {
 
     if(document.hasOwnProperty("pageCount"))
         script = script.replace("$pagecount$",document.pageCount);
-
-    else
-        script = script.replace("$pagecount$","100");
+    else script = script.replace("$pagecount$","100");
 
     if(document.hasOwnProperty("id"))
         script = script.replace("$bookid$",document.id);
-
-    else
-        script = script.replace("$bookid$","0");
+    else script = script.replace("$bookid$","0");
 
     if(document.hasOwnProperty("title"))
         script = script.replace("$booktitle$",document.title);
-
-    else
-        script = script.replace("$booktitle$","[Titel]");
+    else script = script.replace("$booktitle$","[Titel]");
 
     if(document.hasOwnProperty("authors"))
         script = script.replace("$bookauthor$",document.authors.join(", "));
-
-    else
-        script = script.replace("$bookauthor$","[Autor]");
+    else script = script.replace("$bookauthor$","[Autor]");
 
     return script;
 
 }
 
+function getBookReaderHead() {
+
+    return "<script src='BookReader/jquery-1.10.1.js'></script>\n" +
+        "<script src='BookReader/jquery-ui-1.12.0.min.js'></script>\n" +
+        "<script src='BookReader/jquery.browser.min.js'></script>\n" +
+        "<script src='BookReader/dragscrollable-br.js'></script>\n" +
+        "<script src='BookReader/jquery.colorbox-min.js'></script>\n" +
+        "<script src='BookReader/jquery.bt.min.js'></script>\n" +
+        "<link rel='stylesheet' href='BookReader/BookReader.css'/>\n" +
+        "<script src='BookReader/BookReader.js'></script>\n" +
+        "<script type='text/javascript' src='BookReader/plugins/plugin.url.js'></script>\n" +
+        "<link rel='stylesheet' href='BookReaderDemo.css'/>\n";
+
+}
+
+function getLightboxHead() {
+
+    return "<script src='lightbox.js'></script>";
+
+}
+
+function getLightboxFoot() {
+
+    return "    <div id='lightbox'>\n" +
+        "        <img src='' alt='lightbox'>\n" +
+        "        <div id='lightboxleft' onclick='lightbox(lbc-1);'></div>\n" +
+        "        <div id='lightboxright' onclick='lightbox(lbc+1);'></div>\n" +
+        "    </div>\n";
+
+}
+
+
+/* ************************************************************ *
+ * *Methods reuired by node_server for dynamic implementation** *
+ * ************************************************************ */
+
+
+function getURLParts() {
+
+    return [
+        "gallery",
+        "gallery-admin",
+        "gallery-add",
+        "gallery-remove",
+        "gallery-edit",
+        "gallery-move",
+        "gallery-add-element",
+        "gallery-remove-element",
+        "gallery-move-element",
+        "gallery-edit-element",
+
+        "document",
+        "document-admin",
+        "document-add",
+        "document-remove",
+        "document-edit",
+        "document-move",
+        "document-upload",
+        "document-edit-meta",
+
+        "BookReader"
+    ];
+
+}
+
+function publicSubFolders() {
+
+    return ["BookReader"];
+
+}
+
+function handleURL(url, admin, req, res, nameList, database) {
+
+    let galLib = database.library.galleries,
+        galRes = database.resources.galleries,
+        docLib = database.library.documents,
+        docRes = database.resources.documents;
+
+    switch(url[0]) {
+
+        case "gallery": getGallery(url[1], galRes, url[1].replace("-"," "), req, res); break;
+        case "document": getDocument(url[1], docRes, req, res); break;
+
+        case "gallery-admin": if(admin) adminGallery(galLib, galRes, req, res); break;
+        case "gallery-add": if(admin) addGallery(url[1], database, nameList, req, res); break;
+        case "gallery-remove": if(admin) removeGallery(url[1], database, req, res); break;
+        case "gallery-edit": if(admin) editGallery(url[1], url[2], database, nameList, req, res); break;
+        case "gallery-move": if(admin) moveGallery(url[1], database, req, res); break;
+        case "gallery-add-element": if(admin) addGalleryElement(url[1], database, req, res); break;
+        case "gallery-remove-element": if(admin) removeGalleryElement(url[1], url[2], database, req, res); break;
+        case "gallery-edit-element": if(admin) editGalleryElement(url[1], url[2], database, req, res); break;
+        case "gallery-move-element": if(admin) moveGalleryElement(url[1], url[2], database, req, res); break;
+
+        case "document-admin": if(admin) adminDocument(docLib, docRes, req, res); break;
+        case "document-add": if(admin) addDocument(database, nameList, req, res); break;
+        case "document-remove": if(admin) removeDocument(url[1], database, req, res); break;
+        case "document-edit": if(admin) editDocument(url[1], url[2], database, nameList, req, res); break;
+        case "document-move": if(admin) moveDocument(url[1], database, req, res); break;
+        case "document-upload": if(admin) uploadDocument(url[1], database, req, res); break;
+        case "document-edit-meta": if(admin) editDocumentMeta(url[1], database, req, res); break;
+
+    }
+
+}
+
+function loadDatabase(database){
+
+    //load gallery library to database
+    database.fileToLib("gallery-library",function(data, err) {
+
+        if (!err) {
+
+            database.library.galleries = JSON.parse(data);
+            console.log("Gallery library successfully loaded!");
+
+        } else console.error("ERROR: Gallery library not found or corrupted. " +
+                "The file will be replaced or overwritten if the server is not restarted.");
+
+        //load referenced resources to database
+        database.resources.galleries = {};
+        for (let i=0; i<database.library.galleries.length; i++) {
+
+            database.fileToLib("galleries/" + database.library.galleries[i], function (data, err) {
+
+                if (!err) database.resources.galleries[database.library.galleries[i]] = JSON.parse(data);
+
+                else
+                    console.error("ERROR: The resource requested could not be loaded to the database! " +
+                        "(loadLibrary/galleries)");
+
+            });
+
+        }
+
+
+        //load document library to database
+        database.fileToLib("document-library",function(data, err) {
+
+            if (!err) {
+
+                database.library.documents = JSON.parse(data);
+                console.log("Document library successfully loaded!");
+
+            } else console.error("ERROR: Document library not found or corrupted! " +
+                    "The file will be replaced or overwritten if the server is not restarted.");
+
+            //load referenced resources to database
+            database.resources.documents = {};
+            for (let i=0; i<database.library.documents.length; i++) {
+
+                database.fileToLib("documents/" + database.library.documents[i], function (data, err) {
+
+                    if (!err)
+                        database.resources.documents[database.library.documents[i]] = JSON.parse(data);
+
+                    else
+                        console.error("ERROR: The resource requested could not be loaded to the database! " +
+                            "(loadLibrary/documents)");
+
+                });
+
+            }
+
+        });
+
+    });
+
+}
 
 
 /* **************************** *
@@ -775,17 +1560,8 @@ function getBookScript(document) {
 
 module.exports.getDocument = getDocument;
 module.exports.getGallery = getGallery;
-module.exports.adminGallery = adminGallery;
-module.exports.addGallery = addGallery;
-module.exports.editGallery = editGallery;
-module.exports.removeGallery = removeGallery;
-module.exports.moveGallery = moveGallery;
-module.exports.addGalleryElement = addGalleryElement;
-module.exports.removeGalleryElement = removeGalleryElement;
-module.exports.moveGalleryElement = moveGalleryElement;
-module.exports.editGalleryElement = editGalleryElement;
-module.exports.adminDocument = adminDocument;
-module.exports.addDocument = addDocument;
-module.exports.editDocument = editDocument;
-module.exports.removeDocument = removeDocument;
-module.exports.moveDocument = moveDocument;
+
+module.exports.getURLParts = getURLParts;
+module.exports.publicSubFolders = publicSubFolders;
+module.exports.handleURL = handleURL;
+module.exports.loadDatabase = loadDatabase;

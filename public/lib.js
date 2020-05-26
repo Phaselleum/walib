@@ -55,13 +55,13 @@ Object.defineProperty(Array.prototype, "equals", {enumerable: false});
 
 
 function romanize(num,cap) {
-    var lookup = {};
+    let lookup = {};
     if(cap)
         lookup = {M:1000,CM:900,D:500,CD:400,C:100,XC:90,L:50,XL:40,X:10,IX:9,V:5,IV:4,I:1};
     else
         lookup = {m:1000,cm:900,d:500,cd:400,c:100,xc:90,l:50,xl:40,x:10,ix:9,v:5,iv:4,i:1};
-    var roman = '',
-        i;
+    let roman = '',
+        i = "";
     for ( i in lookup ) {
         while ( num >= lookup[i] ) {
             roman += i;
@@ -72,11 +72,11 @@ function romanize(num,cap) {
 }
 
 function numToLetter(n) {
-    var ordA = 'a'.charCodeAt(0);
-    var ordZ = 'z'.charCodeAt(0);
-    var len = ordZ - ordA + 1;
+    let ordA = 'a'.charCodeAt(0);
+    let ordZ = 'z'.charCodeAt(0);
+    let len = ordZ - ordA + 1;
 
-    var s = "";
+    let s = "";
     while(n >= 0) {
         s = String.fromCharCode(n % len + ordA) + s;
         n = Math.floor(n / len) - 1;
@@ -85,10 +85,10 @@ function numToLetter(n) {
 }
 
 function randomChars(length) {
-    var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let text = "";
+    let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    for( var i=0; i < length; i++ )
+    for(let i=0;i<length;i++)
         text += possible.charAt(Math.floor(Math.random() * possible.length));
 
     return text;
@@ -98,4 +98,16 @@ function createCookie(name,value,daysvalid) {
     var d = new Date();
     d.setTime(d.getTime()+daysvalid*24*3600*1000);
     document.cookie=name+"="+value+";expires="+d.toUTCString()+";path=/";
+}
+
+function hyphenate(str) {
+
+    return str.replace("-","%-").replace(/\s/g,"-");
+
+}
+
+function dehyphenate(str) {
+
+    return str.replace("-"," ").replace(/%\s/g,"-");
+
 }

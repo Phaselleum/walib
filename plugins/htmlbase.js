@@ -2,7 +2,7 @@ const f = require("./methods.js");
 
 
 //returns the HTML head section, width the option of including the lightbox framework
-function getHead(lightbox, bookreader, subtitle, name) {
+function getHead(headers, subtitle, name) {
 
     let html = "<!DOCTYPE html>\n" +
         "<html lang='de'>\n" +
@@ -19,23 +19,8 @@ function getHead(lightbox, bookreader, subtitle, name) {
         "<meta name='apple-mobile-web-app-capable' content='yes'>\n" +
         "<link rel='icon' href='favicon.png' type='image'/>\n";
 
-    if(bookreader) {
-
-        html += "<script src='BookReader/jquery-1.10.1.js'></script>\n" +
-            "<script src='BookReader/jquery-ui-1.12.0.min.js'></script>\n" +
-            "<script src='BookReader/jquery.browser.min.js'></script>\n" +
-            "<script src='BookReader/dragscrollable-br.js'></script>\n" +
-            "<script src='BookReader/jquery.colorbox-min.js'></script>\n" +
-            "<script src='BookReader/jquery.bt.min.js'></script>\n" +
-            "<link rel='stylesheet' href='BookReader/BookReader.css'/>\n" +
-            "<script src='BookReader/BookReader.js'></script>\n" +
-            "<script type='text/javascript' src='BookReader/plugins/plugin.url.js'></script>\n" +
-            "<link rel='stylesheet' href='BookReaderDemo.css'/>\n";
-
-    }
-
-    if(lightbox)
-        html += "<script src='lightbox.js'></script>";
+    if(headers)
+        html += headers;
 
     html  += "</head>\n" +
         "<body>\n" +
@@ -54,19 +39,12 @@ function getHead(lightbox, bookreader, subtitle, name) {
 
 
 //returns the HTML foot section, width the option of including the lightbox framework
-function getFoot(lightbox) {
+function getFoot(footers) {
 
     let html = "</div>\n";
 
-    if(lightbox) {
-
-        html += "    <div id='lightbox'>\n" +
-            "        <img src='' alt='lightbox'>\n" +
-            "        <div id='lightboxleft' onclick='lightbox(lbc-1);'></div>\n" +
-            "        <div id='lightboxright' onclick='lightbox(lbc+1);'></div>\n" +
-            "    </div>\n";
-
-    }
+    if(footers)
+        html += footers
 
     html += "    <div id='footer'>\n" +
         "        &copy;2020 by Frederick Brandes | <a href='disclaimer.html'>" + f.lang("Disclaimer")

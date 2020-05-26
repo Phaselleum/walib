@@ -6,27 +6,16 @@ const MAX_FILE_SIZE = 1e8; // ~100MB
  */
 
 
-function addGallery() {
+function addGalleryCS() {
 
-    $.get("gallery-add/" + $("#g-a-name").val(), function(data){
+    $.get("gallery-add/" + $("#g-a-name").val().replace(/\s/g, "-"), function(data){
         alert(data);
         window.location.reload();
     });
 
-
 }
 
-function editGallery(name) {
-
-    $.get("gallery-edit/" + name + "/" + $("#g-e-" + name).val(), function(data){
-        alert(data);
-        window.location.reload();
-    });
-
-
-}
-
-function removeGallery(name) {
+function removeGalleryCS(name) {
 
     $.get("gallery-remove/" + name, function(data){
         alert(data);
@@ -35,7 +24,16 @@ function removeGallery(name) {
 
 }
 
-function moveGallery(name) {
+function editGalleryCS(name) {
+
+    $.get("gallery-edit/" + name + "/" + $("#g-e-" + name).val(), function(data){
+        alert(data);
+        window.location.reload();
+    });
+
+}
+
+function moveGalleryCS(name) {
 
     $.get("gallery-move/" + name, function(data){
         alert(data);
@@ -44,7 +42,7 @@ function moveGallery(name) {
 
 }
 
-function addGalleryElement(name) {
+function addGalleryElementCS(name) {
 
     let fd = new FormData(),
         fileElement = $("#g-ae-f-" + name)[0];
@@ -85,7 +83,7 @@ function addGalleryElement(name) {
 }
 
 
-function removeGalleryElement(galleryName, elementId) {
+function removeGalleryElementCS(galleryName, elementId) {
 
     $.get("gallery-remove-element/" + galleryName + "/" + elementId, function(data){
         alert(data);
@@ -95,20 +93,20 @@ function removeGalleryElement(galleryName, elementId) {
 }
 
 
-function moveGalleryElement(galleryName, elementId) {
+function editGalleryElementCS(galleryName, elementId) {
 
-    $.get("gallery-move-element/" + galleryName + "/" + elementId, function(data){
-        alert(data);
-        window.location.reload();
-    });
+    $.post("gallery-edit-element/" + galleryName + "/" + elementId,
+        {"desc": $("#g-edit-" + galleryName + "-e-" + elementId + "i").val()}, function(data){
+            alert(data);
+            window.location.reload();
+        });
 
 }
 
 
-function editGalleryElement(galleryName, elementId) {
+function moveGalleryElementCS(galleryName, elementId) {
 
-    $.post("gallery-edit-element/" + galleryName + "/" + elementId,
-        {"desc": $("#g-edit-" + galleryName + "-e-" + elementId + "i").val()}, function(data){
+    $.get("gallery-move-element/" + galleryName + "/" + elementId, function(data){
         alert(data);
         window.location.reload();
     });
@@ -121,7 +119,7 @@ function editGalleryElement(galleryName, elementId) {
  */
 
 
-function addDocument() {
+function addDocumentCS() {
 
     let fd = new FormData(),
         fileElement = $("#g-f-in")[0];
@@ -170,9 +168,18 @@ function addDocument() {
 
 }
 
-function editDocument(name) {
+function removeDocumentCS(name) {
 
-    let newName = $("#g-e-" + name).val().replace(/\s/g,"-"); //hyphenate
+    $.get("document-remove/" + name, function(data){
+        alert(data);
+        window.location.reload();
+    });
+
+}
+
+function editDocumentCS(name) {
+
+    let newName = hyphenate($("#g-e-" + name).val());
 
     if(newName.length < 1)
         return alert("please enter a different document name!");
@@ -185,16 +192,7 @@ function editDocument(name) {
 
 }
 
-function removeDocument(name) {
-
-    $.get("document-remove/" + name, function(data){
-        alert(data);
-        window.location.reload();
-    });
-
-}
-
-function moveDocument(name) {
+function moveDocumentCS(name) {
 
     $.get("document-move/" + name, function(data){
         alert(data);
@@ -203,7 +201,7 @@ function moveDocument(name) {
 
 }
 
-function uploadDoc(name) {
+function uploadDocumentCS(name) {
 
     let fd = new FormData(),
         fileElement = $("#g-" + name + "-f-in")[0];
@@ -248,7 +246,7 @@ function uploadDoc(name) {
 
 }
 
-function editDocumentMeta(name) {
+function editDocumentMetaCS(name) {
 
     let fd = new FormData();
 

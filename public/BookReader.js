@@ -26,7 +26,7 @@ const options = {
       // reduce and rotate are ignored in this simple implementation, but we
       // could e.g. look at reduce and load images from a different directory
       // or pass the information to an image server
-      return 'getPage/$bookid$/$bookid$-' + index.toString() + '.jpg';
+      return 'getImg/$bookid$/$bookid$-' + index.toString() + '.jpg';
   },
 
   // Return which side, left or right, that a given page should be displayed on
