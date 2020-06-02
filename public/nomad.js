@@ -124,15 +124,11 @@ function addDocumentCS() {
     let fd = new FormData(),
         fileElement = $("#g-f-in")[0];
 
-    if(fileElement.files[0].size > MAX_FILE_SIZE) {
+    if(fileElement.files[0].size > MAX_FILE_SIZE)
+        return alert("The file ist too large to be uploaded!");
 
-        alert("The file ist too large to be uploaded!");
-        return;
-
-    }
-
-    fd.append("file", fileElement.files[0]);
     fd.append("name", $("#g-a-name").val());
+    fd.append("file", fileElement.files[0]);
 
     if(fd.get("name").length < 1)
         return alert("please enter a different document name!");

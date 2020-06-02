@@ -181,55 +181,18 @@ function stringToDate(str,type) {
             year = str[0] + str[1] + str[2] + str[3];
 
             switch(month) {
-
-                case "01":
-                    month = "Januar";
-                    break;
-
-                case "02":
-                    month = "Februar";
-                    break;
-
-                case "03":
-                    month = LANGUAGE_LIBRARY[LANGUAGE]["March"];
-                    break;
-
-                case "04":
-                    month = "April";
-                    break;
-
-                case "05":
-                    month = "Mai";
-                    break;
-
-                case "06":
-                    month = "Juni";
-                    break;
-
-                case "07":
-                    month = "Juli";
-                    break;
-
-                case "08":
-                    month = "August";
-                    break;
-
-                case "09":
-                    month = "September";
-                    break;
-
-                case "10":
-                    month = "Oktober";
-                    break;
-
-                case "11":
-                    month = "November";
-                    break;
-
-                case "12":
-                    month = "Dezember";
-                    break;
-
+                case "01": month = lang("January"); break;
+                case "02": month = lang("February"); break;
+                case "03": month = lang("March"); break;
+                case "04": month = lang("April"); break;
+                case "05": month = lang("May"); break;
+                case "06": month = lang("June"); break;
+                case "07": month = lang("July"); break;
+                case "08": month = lang("August"); break;
+                case "09": month = lang("September"); break;
+                case "10": month = lang("October"); break;
+                case "11": month = lang("November"); break;
+                case "12": month = lang("December"); break;
             }
 
             if(str.length === 8)
@@ -308,13 +271,13 @@ function setLanguageLibrary(lib) {
 
 function hyphenate(str) {
 
-    return str.replace("-","%-").replace(/\s/g,"-");
+    return str.split("-").join("%-").split(" ").join("-");
 
 }
 
 function dehyphenate(str) {
 
-    return str.replace("-"," ").replace(/%\s/g,"-");
+    return str.split("-").join(" ").split("% ").join("-");
 
 }
 

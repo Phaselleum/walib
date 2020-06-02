@@ -517,6 +517,7 @@ td, th {
 .gridc1r1 {
     -ms-grid-row: 1;
     -ms-grid-column: 1;
+    display: none;
 }
 
 .gridc1r2 {
@@ -571,7 +572,6 @@ td, th {
 
 .persongallerylargeelement img {
     max-width: 95%;
-    cursor: pointer;
 }
 
 .treelist {

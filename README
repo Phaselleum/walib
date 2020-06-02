@@ -1,4 +1,4 @@
-This project is currently WIP.
+This project is currently WIP and version numbering has yet to be introduced.
 
 =============================================
 
@@ -9,6 +9,16 @@ getURLParts():
 
 publicSubFolders():
 - returns folders the plugin requires access to within the public/ folder.
+
+getPanelItems():
+# only the url key is necessarily required in the object, or the link will default to "#".
+- returns an array of items for the admin panel in the format {name: "", url: "", imagepath: ""}
+
+getIndexItems(resources):
+#each object represents a category, the items represent the individual items. only the url key is necessarily required.
++ resources object from the main database object
+- returns an object filled with arrays of items for the admin panel in the format {name: "", url: "", imagepath: ""}
+
 
 handleURL(url, admin, res, req, nameList, database):
 # handles URL access
@@ -25,10 +35,14 @@ loadDatabase(database):
 
 =============================================
 
-This project requires ImageMagick to convert uploaded pdfs vor viewing in the BookReader tool.
+This project requires ImageMagick to convert uploaded pdfs for viewing in the BookReader tool.
 
 Used plugins/libraries:
 node.js by Ryan Dahl
+js-sha512 (JavaScript library) by Yi-Cyuan Chen
+jquery by the JS Foundation
+
+for the archiver plugin:
 formidable (node module) by felixge
 pdf-image (node module) by mooz
 Internet Archive BookReader (JavaScript library)

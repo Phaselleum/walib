@@ -102,12 +102,12 @@ function createCookie(name,value,daysvalid) {
 
 function hyphenate(str) {
 
-    return str.replace("-","%-").replace(/\s/g,"-");
+    return str.split("-").join("%-").split(" ").join("-");
 
 }
 
 function dehyphenate(str) {
 
-    return str.replace("-"," ").replace(/%\s/g,"-");
+    return str.split("-").join(" ").split("% ").join("-");
 
 }

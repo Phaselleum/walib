@@ -15,17 +15,16 @@
 
             event.preventDefault();
 
-            $("#inSub").attr("disabled","disabled").attr('value','Bitte Warten!');
+            $("#inSub").attr("disabled","disabled").attr('value','Please wait!');
 
-            var x2=sha512($("#inPw").val());
-            $.get("/login9/" + x2,function(data){
+            $.get("/login9/" + sha512($("#inPw").val()),function(data){
 
                 console.log(data);
 
                 if(data.length === 64){
 
                     createCookie("session",data,.5);
-                    window.location.href = "/nomad.html";
+                    window.location.href = "/panel";
                     return true;
 
                 } else {

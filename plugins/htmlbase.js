@@ -58,6 +58,120 @@ function getFoot(footers) {
 }
 
 
+//returns the HTML for the admin panel from a given list of panel items as objects
+function buildPanel(items) {
+
+    let html = getHead("<script src='nomad.js'></script>\n", "Administration panel", "Admin panel");
+    
+    html +="        <div id='content'>\n" +
+        "           <div id='peoplespace' style='font-weight:bold;text-align:center;text-decoration: underline;'>\n" +
+        "               <h3>Content management</h3>\n" +
+        "               <div class='treelist'>\n";
+
+    for(let i=0; i<items.length; i+=4) {
+
+        let clas = "w25 m50";
+
+        if(items.length === 3)
+            clas = "w33 m50";
+        if(items.length === 2)
+            clas = "w50";
+        if(items.length === 1)
+            clas = "w100";
+        
+        for(let j=i;j<4&&j<items.length;j++) {
+            
+            if(j === i+3 && j === items.length - 1)
+                clas = "w33 m100";
+
+            if(!items[j].hasOwnProperty("url"))
+                items[j].url = "#";
+            if(!items[j].hasOwnProperty("imagepath"))
+                items[j].imagepath = "plus.png";
+            if(!items[j].hasOwnProperty("name"))
+                items[j].name = items[j].url;
+            
+            html += "                   <div class='treelistitem " + clas + "'>\n" +
+                "                       <div class='treelistitemimg' " +
+                "onclick='location.href=\"" + items[j].url + "\"'>\n" +
+                "                           <img src='" + items[j].imagepath + "' alt='" + items[j].name + "'>\n" +
+                "                       </div>\n" +
+                "                       <div class='treelistitemdesc'>\n" +
+                "                           <a href='location.href=\"" + items[j].url + "\"'>" +
+                items[j].name + "</a>\n" +
+                "                       </div>\n" +
+                "                   </div>\n";
+            
+        }
+
+    }
+
+    return html + "</div>\n</div>\n</div>\n" + getFoot();
+
+}
+
+
+//returns the HTML for the index page from a given list of panel items as objects
+function buildIndex(items) {
+
+    let html = getHead("", "Project Alexandria", "Familie Brandes");
+
+    html +="        <div id='content'>\n" +
+        "           <div id='peoplespace' style='font-weight:bold;text-align:center;text-decoration: underline;'>\n";
+
+    for(const key in items) {
+
+        html += "               <h3>" + f.lang(key) + "</h3>\n" +
+            "               <div class='treelist'>\n";
+
+        for(let i=0; i<items[key].length; i+=4) {
+
+            let clas = "w25 m50";
+
+            if(items[key].length === 3)
+                clas = "w33 m50";
+            if(items[key].length === 2)
+                clas = "w50";
+            if(items[key].length === 1)
+                clas = "w100";
+
+            for(let j=i;j<4&&j<items[key].length;j++) {
+
+                if(j === i+3 && j === items[key].length - 1)
+                    clas = "w33 m100";
+
+                if(!items[key][j].hasOwnProperty("url"))
+                    items[key][j].url = "#";
+                if(!items[key][j].hasOwnProperty("imagepath"))
+                    items[key][j].imagepath = "plus.png";
+                if(!items[key][j].hasOwnProperty("name"))
+                    items[key][j].name = items[j].url;
+
+                html += "                   <div class='treelistitem " + clas + "'>\n" +
+                    "                       <div class='treelistitemimg' " +
+                    "onclick='location.href=\"" + items[key][j].url + "\"'>\n" +
+                    "                           <img src='" + items[key][j].imagepath + "' " +
+                    "alt='" + items[key][j].name + "'>\n" +
+                    "                       </div>\n" +
+                    "                       <div class='treelistitemdesc'>\n" +
+                    "                           <a href='location.href=\"" + items[key][j].url + "\"'>" +
+                    items[key][j].name + "</a>\n" +
+                    "                       </div>\n" +
+                    "                   </div>\n";
+
+            }
+
+        }
+
+        html += "               </div>\n"
+
+    }
+
+    return html + "             </div>\n        </div>\n" + getFoot();
+
+}
+
+
 
 /* **************************** *
  * ********* EXPORTS ********** *
@@ -67,3 +181,5 @@ function getFoot(footers) {
 
 module.exports.getFoot = getFoot;
 module.exports.getHead = getHead;
+module.exports.buildPanel = buildPanel;
+module.exports.buildIndex = buildIndex;

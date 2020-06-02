@@ -17,7 +17,7 @@
  *  = 2. =  DATABASE
  *       = 2.1 =  DATABASE HANDLING
  *       = 2.2 =  DATABASE OBJECT
- *       = 2.3 =  DATABASE INITIALISING
+ *       = 2.3 =  DATABASE INITIALISATION
  *  ======
  *
  * ************************************************************ *
@@ -38,10 +38,9 @@
 const http = require("http"),
     fs = require("fs"),
     url = require("url"),
-    formidable = require('formidable'),
     f = require("./plugins/methods.js"),
-    archiver = require("./plugins/archiver.js"),
-    PDFImage = require("pdf-image").PDFImage;
+    htmlbase = require("./plugins/htmlbase"),
+    archiver = require("./plugins/archiver.js");
 
 const plugins = [archiver];
 
@@ -54,8 +53,7 @@ const plugins = [archiver];
 const PORT = 80,
     PUBLIC = true,
     SESS_TIMEOUT = 12*60*60*1000, // 12 hours
-    ADMIN_SESS_TIMEOUT = 90*60*1000, // 90 minutes
-    MAX_FILE_SIZE = 1e8; // ~100MB
+    ADMIN_SESS_TIMEOUT = 90*60*1000; // 90 minutes
 let ADMIN_SESS_ID = f.randomChars(64), //placeholder, actual ID generated upon admin login (regenerated with every login)
     PASSWORD =  "28a5c6dac4ecbc8294a840150744d09523fb562e5c55ddd2d6a723979c8d351b1d394057440675ba8ccec12537ed0a804f398ac867d621eefa52d70fbfbe680e", //user password
     ADMIN_PW =  "0bd2cff572e3944fe54587d01cdffc2abd4d6b30fc8d2549f0edf3ab0810de61389a6a97d0be5ffcc48c191966859b952351eba22d0c76006a9146b2f03b63b3"; //admin passoword
@@ -84,8 +82,7 @@ http.createServer(function(req,res) {
     if(pathname.indexOf("../") >= 0) {
 
         console.log("Blocked request");
-        res.writeHead(403);
-        res.end();
+        res.writeHead(403).end();
 
     }
 
@@ -99,7 +96,6 @@ http.createServer(function(req,res) {
         cookie = f.cookieToObj(req.headers.cookie);
 
         if(cookie.hasOwnProperty("session")) sessionid = cookie.session;
-
         if(cookie.hasOwnProperty("hasVisited")) hasVisited = true;
 
     }
@@ -109,17 +105,16 @@ http.createServer(function(req,res) {
         path = reqfile.split("/");
 
     //block illegal access of server code
-    if(reqfile.includes("node_server.js")) {
+    if(reqfile.includes("node_server.js") ||
+        path[0] === "plugins" || path[0] === "node_modules" || path[0] === "data") {
 
-        res.writeHead(404);
-        res.end();
+        res.writeHead(404).end();
 
     //check for illegal access of admin area
-    } else if((reqfile.includes("nomad.html") || reqfile.includes("nomad.js")) && sessionid !== ADMIN_SESS_ID) {
+    } else if(sessionid !== ADMIN_SESS_ID && (reqfile.includes("nomad.html") || reqfile.includes("nomad.js"))) {
 
-        console.log("Attemted access of admin files!");
-        res.writeHead(404);
-        res.end();
+        console.log("Attemted access of admin files blocked!");
+        res.writeHead(404).end();
 
     //check for correct password in case of login
     } else if(path[0] === "login") {
@@ -136,8 +131,7 @@ http.createServer(function(req,res) {
         } else {
 
             console.log("login attempt failed!");
-            res.writeHead(401);
-            res.end();
+            res.writeHead(401).end();
 
         }
 
@@ -153,13 +147,38 @@ http.createServer(function(req,res) {
             sessionid = ADMIN_SESS_ID;
             database.sessions[sessionid] = Date.now() + ADMIN_SESS_TIMEOUT;
             console.log("admin login attempt successful! Using standard admin session id");
-            res.write(sessionid, function(){res.end();});
+            res.writeHead(200).write(sessionid, function(){res.end();});
 
         } else {
 
-            res.writeHead(401);
             console.log("admin login attempt failed!");
-            return res.end();
+            return res.writeHead(401).end();
+
+        }
+
+
+    } else if(path[0] === "panel") {
+
+        console.log("admin panel requested");
+
+        if(sessionid === ADMIN_SESS_ID) {
+
+            let panelItems = [];
+
+            plugins.forEach(function(plugin) {
+
+                if (plugin.hasOwnProperty("getPanelItems"))
+                    panelItems = panelItems.concat(plugin.getPanelItems());
+
+            });
+
+            let html = htmlbase.buildPanel(panelItems);
+            res.writeHead(200).write(html, function(){res.end();});
+
+        } else {
+
+            console.log("unauthorised panel access atempt!");
+            reqfile = "index.html";
 
         }
 
@@ -201,26 +220,59 @@ http.createServer(function(req,res) {
 
         }
 
-        let nameList = ["getDoc", "getImg"];
+        let nameList = [
+            "getDoc",
+            "getImg",
+            "login",
+            "login9",
+            "panel",
+            "node_server.js",
+            ".gitignore",
+            "LICENSE",
+            "README",
+            "package.json",
+            "plugins",
+            "node_modules",
+            "public",
+            "data"
+        ];
+
+        let publicList = ["getDoc","getImg"];
 
         plugins.forEach(function(plugin) {
 
             if(plugin.hasOwnProperty("getURLParts"))
-                nameList.concat(plugin.getURLParts());
+                nameList = nameList.concat(plugin.getURLParts());
 
         });
 
         //redirect all subfolder access to base level, excluding allowed access excluding from that base level resources
         if((!nameList.includes(path[0])) || (nameList.includes(path[0]) && path.last().includes("."))) {
 
-            let reqfileLength = reqfile.length;
+            let reqfileLength = reqfile.length,
+                subfolder = false;
 
             //in case resources are requested from subfolders, adjust the base level
             plugins.forEach(function(plugin) {
 
-                if (plugin.hasOwnProperty("publicSubFolders"))
-                    if (plugin.publicSubFolders().includes(path[1]))
+                if (plugin.hasOwnProperty("publicSubFolders")) {
+
+                    if (plugin.publicSubFolders().includes(path[1])) {
+
                         reqfile = reqfile.substr(path[0].length);
+                        path.shift();
+                        subfolder = true;
+
+                    }
+
+                }
+
+                if(!subfolder && path.length > 1 && !publicList.includes(path[0])) {
+
+                    reqfile = path[path.length-1]
+                    path = [reqfile];
+
+                }
 
             });
 
@@ -257,6 +309,25 @@ http.createServer(function(req,res) {
 
         });
 
+        if(reqfile === "index.html") {
+
+            handled = true;
+            let items = {};
+
+            plugins.forEach(function(plugin) {
+
+                if(plugin.hasOwnProperty("getIndexItems")) {
+
+                    Object.assign(items, plugin.getIndexItems(database.resources));
+
+                }
+
+            });
+
+            res.write(htmlbase.buildIndex(items),function(){res.end();});
+
+        }
+
 
         if(!handled) {
 
@@ -271,8 +342,7 @@ http.createServer(function(req,res) {
 
                         console.error("Error: File \"data/" + path.join("/") +
                             "\" could not be fetched. errno: " + err.errno);
-                        res.writeHead(404);
-                        res.end();
+                        res.writeHead(404).end();
 
                     } else {
 
@@ -285,6 +355,8 @@ http.createServer(function(req,res) {
 
             //handles image fetches/downloads
             } else if(path[0] === "getImg") {
+
+                path.shift();
 
                 fs.readFile("data/" + path.join("/"),function (err, data) {
 
@@ -416,7 +488,7 @@ const database = {
 
 
 /* ************************************************************ *
- * *************** 2.2 DATABASE INITIALISATION **************** *
+ * *************** 2.3 DATABASE INITIALISATION **************** *
  * ************************************************************ */
 
 

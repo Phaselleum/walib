@@ -1,5 +1,10 @@
 const f = require("./methods.js"),
-    h = require("./htmlbase");
+    fs = require("fs"),
+    h = require("./htmlbase"),
+    formidable = require('formidable'),
+    PDFImage = require("pdf-image").PDFImage;
+
+const MAX_FILE_SIZE = 1e8; //~100MB
 
 
 /***
@@ -7,21 +12,19 @@ const f = require("./methods.js"),
  *
  * @param {string} galleryid - the id of the gallery resources Array from the corresponding main database object entry
  * @param {Object} resources - the gallery resources Object from the main database object
- * @param {string} name - name of the gallery
  * @param {IncomingMessage} req - request Object created by the http.Server Object
  * @param {ServerResponse} res - response Object created by the http.Server Object
  ***/
-function getGallery(galleryid, resources, name, req, res) {
+function getGallery(galleryid, resources, req, res) {
 
     let gallery = [];
+    let name = f.dehyphenate(galleryid);
 
     if(!resources.hasOwnProperty(galleryid))
-        console.error("ERROR: Requested gallery \"" + name + "\" not found.");
+        console.error("ERROR: Requested gallery \"" + galleryid + "\" not found.");
     else gallery = resources[galleryid];
 
-    name = f.dehyphenate(name)
-
-    let html = h.getHead(getLightboxHead(), f.lang("Detailed View"), name) +
+    let html = h.getHead(getGalleryJS(), f.lang("Detailed View"), name) +
         "<div id='content'>\n" +
         "    <div id='personspace'>\n" +
         "        <div id='personcontent'>\n" +
@@ -30,19 +33,27 @@ function getGallery(galleryid, resources, name, req, res) {
         "            </div>\n" +
         "            <div class='persongallery'>\n";
 
-    for(let i=0;i<gallery.length;i++) {
+    if(gallery.length > 0) {
 
-        html +="<div class='persongalleryelement'>\n";
-        html += "<img class='gridc1r2' src='/getImg/galleries/" + name + "/" + gallery[i][0]
-            + "' onclick='lightbox(" + i + ");' alt='" + name + "'>";
-        html += "<br><span class='gridc1r1'>" + gallery[i][1] + "</span>\n";
+        html +="<div class='persongallerylargeelement'>\n";
+        html += "<img src='/getImg/galleries/" + galleryid + "/" + gallery[0][0] + "' alt='" + name + "'>";
+        html += "<br><p id='galleryDesc'>" + gallery[0][1] + "</p>\n";
         html += "</div>\n";
+
+        for(let i=0;i<gallery.length;i++) {
+
+            html +="<div class='persongalleryelement'>\n";
+            html += "<img class='gridc1r2' src='/getImg/galleries/" + galleryid + "/" + gallery[i][0]
+                + "' onclick='galleryView(" + i + ");' alt='" + name + "'>\n";
+            html += "<span class='gridc1r1'>" + gallery[i][1] + "</span>\n";
+            html += "</div>\n";
+
+        }
 
     }
 
     html += "</div>\n</div>\n</div>\n</div>\n";
-
-    html += h.getFoot(getLightboxFoot());
+    html += h.getFoot("");
 
     res.write(html, function () {res.end();});
 
@@ -67,7 +78,7 @@ function getGallery(galleryid, resources, name, req, res) {
  ***/
 function adminGallery(library, resources, req, res) {
 
-    let html = h.getHead(false, false, "Gallery Management Tool",
+    let html = h.getHead(false, "Gallery Management", "Gallery Management Tool",
         "Gallery Management Tool") +
         "<div id='content'>\n" +
         "    <div id='personspace'>\n" +
@@ -186,7 +197,7 @@ function adminGallery(library, resources, req, res) {
         "                    </tr>\n" +
         "                </thead>\n" +
         "            </table>\n" +
-        "            <div style='text-align:center;'><a href='nomad.html'>return to admin page</a></div>" +
+        "            <div style='text-align:center;'><a href='/panel'>return to admin page</a></div>" +
         "       </div>\n" +
         "   </div>\n" +
         "</div>\n" +
@@ -215,7 +226,7 @@ function addGallery(name, database, forbiddenNames, req, res) {
 
     console.log("New gallery creation request: " + name);
 
-    if(!library.includes(name) && !forbiddenNames.includes(name)) {
+    if(!library.includes(name) && !forbiddenNames.includes(name) && !name.includes(".")) {
 
         library.push(name);
         resources[name] = [];
@@ -230,7 +241,7 @@ function addGallery(name, database, forbiddenNames, req, res) {
                         res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3,
                             function(){res.end();});
 
-                    else res.write(data, function(){res.end();});
+                    else res.write("SUCCESS!", function(){res.end();});
 
                 });
 
@@ -306,7 +317,7 @@ function editGallery(oldName, newName, database, forbiddenNames, req, res) {
 
     if(library.includes(oldName)) {
 
-        if(!library.includes(newName) && !forbiddenNames.includes(newName)) {
+        if(!library.includes(newName) && !forbiddenNames.includes(newName) && !newName.includes(".")) {
 
             library.splice(library.indexOf(oldName), 1, newName);
 
@@ -322,21 +333,21 @@ function editGallery(oldName, newName, database, forbiddenNames, req, res) {
                 database.libToFile("galleries/" + oldName, JSON.stringify(resources[newName]),
                     function(err2){
 
-                        fs.rename("data/galleries/" + oldName + ".json",
-                            "data/galleries/" + newName + ".json", function(err3) {
+                    fs.rename("data/galleries/" + oldName + ".json",
+                        "data/galleries/" + newName + ".json", function(err3) {
 
-                                fs.rename("data/galleries/" + oldName,"data/galleries/" + newName,
-                                    function(err4) {
+                        fs.rename("data/galleries/" + oldName,"data/galleries/" + newName,
+                            function(err4) {
 
-                                        if (err || err2 || err3 || err4)
-                                            res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 + ";" + err4,
-                                                function() {res.end();});
+                                if (err || err2 || err3 || err4)
+                                    res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 +
+                                        ";" + err4, function() {res.end();});
 
-                                        else res.write("SUCCESS!", function() {res.end();});
-
-                                    });
+                                else res.write("SUCCESS!", function() {res.end();});
 
                             });
+
+                        });
 
                     });
 
@@ -662,19 +673,22 @@ function getDocument(docid, resources, req, res) {
     }
 
     if(document.hasOwnProperty("coauthors"))
-        html += "<tr>\n<th>" + f.lang("Co-Authors") + "</th>\n<td>"
-            + document.coauthors.join("<br>\n") + "</td>\n</tr>\n";
+        html += "<tr>\n<th>" + f.lang("Co-Authors") + "</th>\n<td>" + document.coauthors.join("<br>\n") +
+            "</td>\n</tr>\n";
+
+    if(document.hasOwnProperty("pageCount"))
+        html += "<tr>\n<th>" + f.lang("Pages") + "</th>\n<td>" + document.pageCount + "</td>\n</tr>\n";
 
     if(document.hasOwnProperty("date"))
-        html += "<tr>\n<th>" + f.lang("Published") + "</th>\n<td>" + document.date + "</td>\n</tr>\n";
+        html += "<tr>\n<th>" + f.lang("Date") + "</th>\n<td>" + f.stringToDate(document.date,'c') +
+            "</td>\n</tr>\n";
 
     if(document.hasOwnProperty("file"))
-        html += "<tr>\n<th>" + f.lang("File") + "</th>\n<td><a href='getDoc/documents/" + document.file
-            + "' target='_blank'>" + document.document + "</a></td>\n</tr>\n";
+        html += "<tr>\n<th>" + f.lang("File") + "</th>\n<td><a href='/getDoc/documents/" + document.file
+            + "' target='_blank'>" + document.file + "</a></td>\n</tr>\n";
 
     if(document.hasOwnProperty("description"))
-        html += "<tr>\n<th>" + f.lang("Description") + "</th>\n<td>" + document.description
-            + "</td>\n</tr>\n";
+        html += "<tr>\n<th>" + f.lang("Description") + "</th>\n<td>" + document.description + "</td>\n</tr>\n";
 
     if(document.hasOwnProperty("seealso")) {
 
@@ -687,12 +701,10 @@ function getDocument(docid, resources, req, res) {
 
             if(res.hasOwnProperty("authors"))
                 html += res.authors.join(", ") + ": ";
-
             else html += "[" + f.lang("unknown") + "]: ";
 
             if(res.hasOwnProperty("name"))
                 html += res.name + ". ";
-
             else html += "[" + document.seealso[i] + "]. ";
 
             if(res.hasOwnProperty("date"))
@@ -706,9 +718,11 @@ function getDocument(docid, resources, req, res) {
 
     }
 
+    if(document.hasOwnProperty("contributor"))
+        html += "<tr>\n<th>" + f.lang("Contributor") + "</th>\n<td>" + document.contributor + "</td>\n</tr>\n";
+
     html += "</tbody>\n</table>\n";
     html += "</div>\n</div>\n</div>\n";
-
     html += h.getFoot("");
 
     res.write(html, function () {res.end();});
@@ -738,7 +752,7 @@ function getDocument(docid, resources, req, res) {
  ***/
 function adminDocument(library, resources, req, res) {
 
-    let html = h.getHead(false, false, "Document Management Tool",
+    let html = h.getHead(false, "Document Management", "Document Management Tool",
         "Document Management Tool") +
         "<div id='content'>\n" +
         "    <div id='personspace'>\n" +
@@ -878,7 +892,7 @@ function adminDocument(library, resources, req, res) {
         "                    </tr>\n" +
         "                </thead>\n" +
         "            </table>\n" +
-        "            <div style='text-align:center;'><a href='nomad.html'>return to manager</a></div>" +
+        "            <div style='text-align:center;'><a href='/panel'>return to manager</a></div>" +
         "       </div>\n" +
         "   </div>\n" +
         "</div>\n" +
@@ -927,7 +941,7 @@ function addDocument(database, forbiddenNames, req, res) {
         form.on("fileBegin", function(key, file) {
 
             fileName = file.name;
-            file.path = "data/documents/" + name + "/" + file.name;
+            file.path = "data/documents/" + file.name;
 
         });
 
@@ -953,11 +967,11 @@ function addDocument(database, forbiddenNames, req, res) {
 
             let docId = field.replace(/\s/g,"-");
 
-            if(!library.includes(id) && !forbiddenNames.includes(id)) {
+            if(!library.includes(docId) && !forbiddenNames.includes(docId) && !docId.includes(".")) {
 
-                library.push(id);
-                resources[id] = {
-                    name: name,
+                library.push(docId);
+                resources[docId] = {
+                    name: field,
                     authors: [],
                     coauthors: [],
                     pageCount: "",
@@ -1003,7 +1017,7 @@ function addDocument(database, forbiddenNames, req, res) {
                                     res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
                                         err3 + ";" + error, function () {res.end();});
 
-                                else res.write(data, function () {res.end();});
+                                else res.write("SUCCESS!", function () {res.end();});
 
                             });
 
@@ -1104,7 +1118,7 @@ function editDocument(oldName, newName, database, forbiddenNames, req, res) {
 
     if(library.includes(oldName)) {
 
-        if(!library.includes(newName) && !forbiddenNames.includes(newName)) {
+        if(!library.includes(newName) && !forbiddenNames.includes(newName) && !newName.includes(".")) {
 
             library.splice(library.indexOf(oldName), 1, newName);
 
@@ -1398,19 +1412,13 @@ function getBookReaderHead() {
 
 }
 
-function getLightboxHead() {
+function getGalleryJS() {
 
-    return "<script src='lightbox.js'></script>";
-
-}
-
-function getLightboxFoot() {
-
-    return "    <div id='lightbox'>\n" +
-        "        <img src='' alt='lightbox'>\n" +
-        "        <div id='lightboxleft' onclick='lightbox(lbc-1);'></div>\n" +
-        "        <div id='lightboxright' onclick='lightbox(lbc+1);'></div>\n" +
-        "    </div>\n";
+    return "<script>function galleryView(i) {" +
+        "let e=$('.persongalleryelement').get(i);" +
+        "$('.persongallerylargeelement img').attr('src',e.getElementsByClassName('gridc1r2')[0].getAttribute('src'));" +
+        "$('.persongallerylargeelement p').html(e.getElementsByClassName('gridc1r1')[0].innerHTML);" +
+        "}</script>";
 
 }
 
@@ -1441,9 +1449,7 @@ function getURLParts() {
         "document-edit",
         "document-move",
         "document-upload",
-        "document-edit-meta",
-
-        "BookReader"
+        "document-edit-meta"
     ];
 
 }
@@ -1451,6 +1457,35 @@ function getURLParts() {
 function publicSubFolders() {
 
     return ["BookReader"];
+
+}
+
+function getPanelItems() {
+
+    return [{name: "manage galleries", url: "gallery-admin"}, {name: "manage documents", url: "document-admin"}];
+
+}
+
+function getIndexItems(resources) {
+
+    let items = {Documents: [], Galleries: []};
+    let i = 0;
+
+    for(const item in resources.galleries) {
+
+        items.Galleries[i++] = {name: item, url: "/gallery/" + item};
+
+    }
+
+    i = 0;
+
+    for(const item in resources.documents) {
+
+        items.Documents[i++] = {name: item, url: "/document/" + item};
+
+    }
+
+    return items;
 
 }
 
@@ -1463,7 +1498,7 @@ function handleURL(url, admin, req, res, nameList, database) {
 
     switch(url[0]) {
 
-        case "gallery": getGallery(url[1], galRes, url[1].replace("-"," "), req, res); break;
+        case "gallery": getGallery(url[1], galRes, req, res); break;
         case "document": getDocument(url[1], docRes, req, res); break;
 
         case "gallery-admin": if(admin) adminGallery(galLib, galRes, req, res); break;
@@ -1486,6 +1521,10 @@ function handleURL(url, admin, req, res, nameList, database) {
 
     }
 
+    //Catch and redirect unauthorised access
+    if(!admin && !(url[0] === "gallery" || url[0] === "document"))
+        return res.writeHead(302, {'Location': 'index.html'}).end();
+
 }
 
 function loadDatabase(database){
@@ -1503,14 +1542,13 @@ function loadDatabase(database){
 
         //load referenced resources to database
         database.resources.galleries = {};
+
         for (let i=0; i<database.library.galleries.length; i++) {
 
             database.fileToLib("galleries/" + database.library.galleries[i], function (data, err) {
 
                 if (!err) database.resources.galleries[database.library.galleries[i]] = JSON.parse(data);
-
-                else
-                    console.error("ERROR: The resource requested could not be loaded to the database! " +
+                else console.error("ERROR: The resource requested could not be loaded to the database! " +
                         "(loadLibrary/galleries)");
 
             });
@@ -1531,6 +1569,7 @@ function loadDatabase(database){
 
             //load referenced resources to database
             database.resources.documents = {};
+            
             for (let i=0; i<database.library.documents.length; i++) {
 
                 database.fileToLib("documents/" + database.library.documents[i], function (data, err) {
@@ -1538,8 +1577,7 @@ function loadDatabase(database){
                     if (!err)
                         database.resources.documents[database.library.documents[i]] = JSON.parse(data);
 
-                    else
-                        console.error("ERROR: The resource requested could not be loaded to the database! " +
+                    else console.error("ERROR: The resource requested could not be loaded to the database! " +
                             "(loadLibrary/documents)");
 
                 });
@@ -1563,5 +1601,7 @@ module.exports.getGallery = getGallery;
 
 module.exports.getURLParts = getURLParts;
 module.exports.publicSubFolders = publicSubFolders;
+module.exports.getPanelItems = getPanelItems;
+module.exports.getIndexItems = getIndexItems;
 module.exports.handleURL = handleURL;
 module.exports.loadDatabase = loadDatabase;
