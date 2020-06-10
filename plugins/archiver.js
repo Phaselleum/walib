@@ -2,7 +2,8 @@ const f = require("./methods.js"),
     fs = require("fs"),
     h = require("./htmlbase"),
     formidable = require('formidable'),
-    PDFImage = require("pdf-image").PDFImage;
+    PDFImage = require("pdf-image").PDFImage,
+    rimraf = require("rimraf");
 
 const MAX_FILE_SIZE = 1e8; //~100MB
 
@@ -78,7 +79,7 @@ function getGallery(galleryid, resources, req, res) {
  ***/
 function adminGallery(library, resources, req, res) {
 
-    let html = h.getHead(false, "Gallery Management", "Gallery Management Tool",
+    let html = h.getHead("<script src='/nomad.js'></script>\n", "Gallery Management",
         "Gallery Management Tool") +
         "<div id='content'>\n" +
         "    <div id='personspace'>\n" +
@@ -118,6 +119,22 @@ function adminGallery(library, resources, req, res) {
             "                        </td>\n" +
             "                        <td colspan='3'>\n" +
             "                            <button onclick='editGalleryCS(\"" + library[i] + "\")'>Edit</button>\n" +
+            "                        </td>\n" +
+            "                    </tr>\n" +
+            "                    <tr>\n" +
+            "                        <td>\n" +
+            "                            <img src='/getImg/galleries/" + library[i] + "/thumbnail.png' " +
+            "alt='thumbnail.png'>\n" +
+            "                        </td>\n" +
+            "                        <td colspan='2'>\n" +
+            "                            <label for='g-atn-" + library[i] + "'>Add Thumbnail (.png)</label><br>\n" +
+            "                            <input id='g-atn-" + library[i] + "' type='file' accept='.png'>\n" +
+            "                        </td>\n" +
+            "                        <td colspan='2'>\n" +
+            "                            <button onclick='addGalleryThumbnailCS(\"" + library[i] + "\")'>" +
+            "Add Thumbnail</button><br>\n" +
+            "                            <button onclick='removeGalleryThumbnailCS(\"" + library[i] + "\")'>" +
+            "Remove Thumbnail</button><br>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +
             "                </thead>\n" +
@@ -201,7 +218,6 @@ function adminGallery(library, resources, req, res) {
         "       </div>\n" +
         "   </div>\n" +
         "</div>\n" +
-        "<script src='nomad.js'></script>\n" +
         h.getFoot(false);
 
     res.write(html, function () {res.end();});
@@ -231,17 +247,22 @@ function addGallery(name, database, forbiddenNames, req, res) {
         library.push(name);
         resources[name] = [];
 
-        database.libToFile("gallery-library", JSON.stringify(library), function(err) {
+        database.libToFile("gallery-library", JSON.stringify(library), (err) => {
 
-            database.libToFile("galleries/" + name, "[]", function(err2) {
+            database.libToFile("galleries/" + name, "[]", (err2) => {
 
-                fs.mkdir("data/galleries/" + name, function(err3) {
+                fs.mkdir("data/galleries/" + name, (err3) => {
 
-                    if(err || err2 || err3)
-                        res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3,
-                            function(){res.end();});
+                    fs.createReadStream("public/plus.png")
+                        .pipe(fs.createWriteStream("data/galleries/" + name + "/thumbnail.png")
+                            .on("finish",() => {
 
-                    else res.write("SUCCESS!", function(){res.end();});
+                        if(err || err2 || err3)
+                            res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3,
+                                () => {res.end();});
+                        else res.write("SUCCESS!", () => {res.end();});
+
+                    }));
 
                 });
 
@@ -249,7 +270,7 @@ function addGallery(name, database, forbiddenNames, req, res) {
 
         });
 
-    } else res.write("ERROR: A gallery of this name already exists or is disallowed!", function(){res.end();});
+    } else res.write("ERROR: A gallery of this name already exists or is disallowed!", () => {res.end();});
 
 }
 
@@ -274,17 +295,17 @@ function removeGallery(name, database, req, res) {
         library.splice(library.indexOf(name), 1);
         delete resources[name];
 
-        database.libToFile("gallery-library", JSON.stringify(library), function(err){
+        database.libToFile("gallery-library", JSON.stringify(library), (err) => {
 
-            fs.unlink("data/galleries/" + name + ".json", function(err2){
+            fs.unlink("data/galleries/" + name + ".json", (err2) => {
 
-                fs.rmdir("data/galleries/" + name, function(err3){
+                fs.rimraf("data/galleries/" + name, (err3) => {
 
                     if(err || err2 || err3)
                         res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3,
-                            function(){res.end();});
+                            () => {res.end();});
 
-                    else res.write("SUCCESS!", function(){res.end();});
+                    else res.write("SUCCESS!", () => {res.end();});
 
                 });
 
@@ -292,7 +313,7 @@ function removeGallery(name, database, req, res) {
 
         });
 
-    } else res.write("ERROR: A gallery of this name does not exist!", function(){res.end();});
+    } else res.write("ERROR: A gallery of this name does not exist!", () => {res.end();});
 
 }
 
@@ -328,22 +349,21 @@ function editGallery(oldName, newName, database, forbiddenNames, req, res) {
 
             }
 
-            database.libToFile("gallery-library", JSON.stringify(library), function(err){
+            database.libToFile("gallery-library", JSON.stringify(library), (err) => {
 
-                database.libToFile("galleries/" + oldName, JSON.stringify(resources[newName]),
-                    function(err2){
+                database.libToFile("galleries/" + oldName, JSON.stringify(resources[newName]),(err2) => {
 
                     fs.rename("data/galleries/" + oldName + ".json",
-                        "data/galleries/" + newName + ".json", function(err3) {
+                        "data/galleries/" + newName + ".json", (err3) => {
 
                         fs.rename("data/galleries/" + oldName,"data/galleries/" + newName,
-                            function(err4) {
+                            (err4) => {
 
                                 if (err || err2 || err3 || err4)
                                     res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 +
-                                        ";" + err4, function() {res.end();});
+                                        ";" + err4, () => {res.end();});
 
-                                else res.write("SUCCESS!", function() {res.end();});
+                                else res.write("SUCCESS!", () => {res.end();});
 
                             });
 
@@ -353,10 +373,9 @@ function editGallery(oldName, newName, database, forbiddenNames, req, res) {
 
             });
 
-        } else res.write("ERROR: A gallery of this name already exists or is disallowed!",
-            function(){res.end();});
+        } else res.write("ERROR: A gallery of this name already exists or is disallowed!",() => {res.end();});
 
-    } else res.write("ERROR: A gallery of this name does not exist!", function(){res.end();});
+    } else res.write("ERROR: A gallery of this name does not exist!", () => {res.end();});
 
 }
 
@@ -372,7 +391,6 @@ function editGallery(oldName, newName, database, forbiddenNames, req, res) {
 function moveGallery(name, database, req, res) {
 
     let library = database.library.galleries;
-
     console.log("New gallery move request: " + name);
 
     if(library.includes(name)) {
@@ -382,16 +400,12 @@ function moveGallery(name, database, req, res) {
 
         database.libToFile("gallery-library", JSON.stringify(library), function (err) {
 
-            if (err) res.write("Error while writing to disk!;" + err, function () {
-                res.end();
-            });
-            else res.write("SUCCESS!", function () {
-                res.end();
-            });
+            if (err) res.write("Error while writing to disk!;" + err, () => {res.end();});
+            else res.write("SUCCESS!", () => {res.end();});
 
         });
 
-    } else res.write("ERROR: A gallery of this name does not exist!", function(){res.end();});
+    } else res.write("ERROR: A gallery of this name does not exist!", () => {res.end();});
 
 }
 
@@ -419,12 +433,10 @@ function addGalleryElement(name, database, req, res) {
 
         form.parse(req);
 
-        form.on("field", function(key, value){
+        form.on("field", (key, value) => {
 
             console.log("Field received: " + key + "=>" + value);
-
-            if(key === "desc")
-                field = value;
+            if(key === "desc") field = value;
 
         });
 
@@ -435,7 +447,7 @@ function addGalleryElement(name, database, req, res) {
 
         });
 
-        form.on("file", function (key, file) {
+        form.on("file", (key, file) => {
 
             console.log("File received: " + file.name);
 
@@ -443,7 +455,6 @@ function addGalleryElement(name, database, req, res) {
 
                 res.writeHead(413,{"Content-Type": "text/html"});
                 res.write("The file is too large!");
-                error += "413[MAX_FILE_SIZE_EXCEEDED];";
 
             }
 
@@ -454,7 +465,6 @@ function addGalleryElement(name, database, req, res) {
         req.on("end", function () {
 
             console.log("POST request ended: " + fileName + ":" + field);
-
             resources[name].push([fileName, field]);
 
             database.libToFile("galleries/" + name, JSON.stringify(resources[name]),function(err){
@@ -466,16 +476,16 @@ function addGalleryElement(name, database, req, res) {
 
                 }
 
-                if(error === "") res.write("File uploaded successfully!", function(){res.end();});
-                else res.write("The following errors were thrown:\n" + error, function(){res.end();});
+                if(error === "") res.write("File uploaded successfully!", () => {res.end();});
+                else res.write("The following errors were thrown:\n" + error, () => {res.end();});
 
             });
 
         });
 
-        form.on("error", function (err) {
+        form.on("error", (err) => {
 
-            res.write("\nError while uploading file(s)!;" + err, function(){res.end();});
+            res.write("\nError while uploading file(s)!;" + err, () => {res.end();});
 
         });
 
@@ -483,7 +493,7 @@ function addGalleryElement(name, database, req, res) {
 
         //Only allow POST connections here
         res.writeHead(405,{"Allow": "POST"});
-        res.write("Only POST connections allowed here!", function(){res.end();});
+        res.write("Only POST connections allowed here!", () => {res.end();});
 
     }
 
@@ -508,20 +518,19 @@ function removeGalleryElement(name, id, database, req, res) {
         let fileName = resources[name][id][0];
         resources[name].splice(id, 1);
 
-        database.libToFile("galleries/" + name, JSON.stringify(resources[name]),function(err){
+        database.libToFile("galleries/" + name, JSON.stringify(resources[name]),(err) => {
 
-            fs.unlink("data/galleries/" + name + "/" + fileName,function(err2){
+            fs.unlink("data/galleries/" + name + "/" + fileName,(err2) => {
 
                 if(err || err2)
-                    res.write("Error while writing to disk!;" + err + ";" + err2, function(){res.end();});
-
-                else res.write(data, function(){res.end();});
+                    res.write("Error while writing to disk!;" + err + ";" + err2, () => {res.end();});
+                else res.write(data, () => {res.end();});
 
             });
 
         });
 
-    } else res.write("Element removal failed. The element was not found.", function(){res.end();});
+    } else res.write("Element removal failed. The element was not found.", () => {res.end();});
 
 }
 
@@ -548,7 +557,7 @@ function editGalleryElement(name, id, database, req, res) {
 
         form.parse(req);
 
-        form.on("field", function(key, value){
+        form.on("field", (key, value) => {
 
             console.log("Field received: " + key + "=>" + value);
 
@@ -556,25 +565,25 @@ function editGalleryElement(name, id, database, req, res) {
 
         });
 
-        req.on("end", function () {
+        req.on("end", () => {
 
             console.log("POST request ended: " + field);
 
             resources[name][id][1] = field;
 
             database.libToFile("galleries/" + name,
-                JSON.stringify(resources[name]),function(err){
+                JSON.stringify(resources[name]),(err) => {
 
-                    if(err) res.write("\nError while writing to disk!;" + err,function(){res.end();});
-                    else res.write("Data successfully received!", function(){res.end();});
+                    if(err) res.write("\nError while writing to disk!;" + err,() => {res.end();});
+                    else res.write("Data successfully received!", () => {res.end();});
 
                 });
 
         });
 
-        form.on("error", function (err) {
+        form.on("error", (err) => {
 
-            res.write("\nError while uploading file(s)!;" + err, function(){res.end();});
+            res.write("\nError while uploading file(s)!;" + err, () => {res.end();});
 
         });
 
@@ -582,7 +591,7 @@ function editGalleryElement(name, id, database, req, res) {
 
         //Only allow POST connections here
         res.writeHead(405,{"Allow": "POST"});
-        res.write("Only POST connections allowed here!", function(){res.end();});
+        res.write("Only POST connections allowed here!", () => {res.end();});
 
     }
 
@@ -607,14 +616,106 @@ function moveGalleryElement(name, id, database, req, res) {
 
         if(id !== "0") resources[name].splice(id - 1, 0, resources[name].splice(id, 1)[0]);
 
-        database.libToFile("gallery-library", JSON.stringify(library),function(err) {
+        database.libToFile("gallery-library", JSON.stringify(library),(err) => {
 
-            if (err) res.write("Error while writing to disk!;" + err + ";" + data,function () {res.end();});
-            else res.write(data, function () {res.end();});
+            if (err) res.write("Error while writing to disk!;" + err + ";" + data, () => {res.end();});
+            else res.write(data,  () => {res.end();});
 
         });
 
-    } else res.write("Element moving failed. The element was not found.", function(){res.end();});
+    } else res.write("Element moving failed. The element was not found.", () => {res.end();});
+
+}
+
+
+/***
+ * @function addGalleryThumbnail - add aa thumbnail to the gallery
+ *
+ * @param {string} name - Name of the gallery to add thumbnail to
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function addGalleryThumbnail(name, database, req, res) {
+
+    if (req.method === "POST") {
+
+        console.log("POST request received.");
+
+        let form = formidable.IncomingForm(),
+            fileName = "";
+
+        form.parse(req);
+
+        form.on("fileBegin", (key, file) => {
+
+            fileName = file.name;
+            file.path = "data/galleries/" + name + "/thumbnail.png";
+
+        });
+
+        form.on("file", (key, file) => {
+
+            console.log("File received: " + file.name);
+
+            if(file.size > MAX_FILE_SIZE) {
+
+                res.writeHead(413,{"Content-Type": "text/html"});
+                res.write("The file is too large!");
+
+            }
+
+            res.write("File uploaded!\n");
+
+        });
+
+        req.on("end", () => {
+
+            console.log("POST request ended: " + fileName);
+            res.write("File uploaded successfully!", () => {res.end();});
+
+        });
+
+        form.on("error", (err) => {
+
+            res.write("\nError while uploading file(s)!;" + err, () => {res.end();});
+
+        });
+
+    } else {
+
+        //Only allow POST connections here
+        res.writeHead(405,{"Allow": "POST"});
+        res.write("Only POST connections allowed here!", () => {res.end();});
+
+    }
+
+}
+
+
+/***
+ * @function removeGalleryThumbnail - removes tha thumbnail from a gallery
+ *
+ * @param {string} name - Name of the gallery to remove thumbnail from
+ * @param {string} id - Id of the gallery element to remove
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function removeGalleryThumbnail(name, database, req, res) {
+
+    let resources = database.resources.galleries;
+
+    if(resources.hasOwnProperty(name)) {
+
+        fs.createReadStream("public/plus.png")
+            .pipe(fs.createWriteStream("data/galleries/" + name + "/thumbnail.png")
+                .on("error",(err) => {
+                    res.write("Error while writing to disk!;" + err, () => {res.end();});
+                })
+                .on("finish",() => {res.write(data, () => {res.end();});}));
+
+    } else res.write("Thumbnail removal failed. The gallery was not found.", () => {res.end();});
 
 }
 
@@ -752,7 +853,7 @@ function getDocument(docid, resources, req, res) {
  ***/
 function adminDocument(library, resources, req, res) {
 
-    let html = h.getHead(false, "Document Management", "Document Management Tool",
+    let html = h.getHead("<script src='nomad.js'></script>\n", "Document Management",
         "Document Management Tool") +
         "<div id='content'>\n" +
         "    <div id='personspace'>\n" +
@@ -792,6 +893,22 @@ function adminDocument(library, resources, req, res) {
             "                        </td>\n" +
             "                        <td colspan='3'>\n" +
             "                            <button onclick='editDocumentCS(\"" + library[i] + "\")'>Edit</button>\n" +
+            "                        </td>\n" +
+            "                    </tr>\n" +
+            "                    <tr>\n" +
+            "                        <td>\n" +
+            "                            <img src='/getImg/documents/" + library[i] + "/thumbnail.png' " +
+            "alt='thumbnail.png'>\n" +
+            "                        </td>\n" +
+            "                        <td colspan='2'>\n" +
+            "                            <label for='g-atn-" + library[i] + "'>Add Thumbnail (.png)</label><br>\n" +
+            "                            <input id='g-atn-" + library[i] + "' type='file' accept='.png'>\n" +
+            "                        </td>\n" +
+            "                        <td colspan='2'>\n" +
+            "                            <button onclick='addDocumentThumbnailCS(\"" + library[i] + "\")'>" +
+            "Add Thumbnail</button><br>\n" +
+            "                            <button onclick='removeDocumentThumbnailCS(\"" + library[i] + "\")'>" +
+            "Remove Thumbnail</button><br>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +
             "                </thead>\n" +
@@ -896,10 +1013,9 @@ function adminDocument(library, resources, req, res) {
         "       </div>\n" +
         "   </div>\n" +
         "</div>\n" +
-        "<script src='nomad.js'></script>\n" +
         h.getFoot(false);
 
-    res.write(html,function(){res.end();});
+    res.write(html,() => {res.end();});
 
 }
 
@@ -930,7 +1046,7 @@ function addDocument(database, forbiddenNames, req, res) {
 
         form.parse(req);
 
-        form.on("field", function(key, value){
+        form.on("field", (key, value) => {
 
             console.log("Field received: " + key + "=>" + value);
 
@@ -938,14 +1054,14 @@ function addDocument(database, forbiddenNames, req, res) {
 
         });
 
-        form.on("fileBegin", function(key, file) {
+        form.on("fileBegin", (key, file) => {
 
             fileName = file.name;
             file.path = "data/documents/" + file.name;
 
         });
 
-        form.on("file", function (key, file) {
+        form.on("file", (key, file) => {
 
             console.log("File received: " + file.name);
 
@@ -953,15 +1069,14 @@ function addDocument(database, forbiddenNames, req, res) {
 
                 res.writeHead(413,{"Content-Type": "text/html"});
                 res.write("The file is too large!");
-                error += "413;";
 
             }
 
-            res.write("File(s) uploaded!\n");
+            res.write("File uploaded!\n");
 
         });
 
-        req.on("end", function () {
+        req.on("end", () => {
 
             console.log("POST request ended: " + fileName + ":" + field);
 
@@ -986,7 +1101,7 @@ function addDocument(database, forbiddenNames, req, res) {
 
                 let pdfimg = new PDFImage("data/documents/" + docId + "/" + fileName);
 
-                pdfimg.numberOfPages().then(function(pageCount){
+                pdfimg.numberOfPages().then((pageCount) => {
 
                     resources[docId]["pageCount"] = pageCount;
 
@@ -999,27 +1114,35 @@ function addDocument(database, forbiddenNames, req, res) {
 
                         fs.mkdir("data/documents/" + docId, function (err3) {
 
-                            pdfimg.convertFile().then(function () {
+                            fs.createReadStream("public/plus.png")
+                                .pipe(fs.createWriteStream("data/galleries/" + name + "/thumbnail.png")
+                                    .on("finish",() => {
 
-                                console.log("Document successfully converted to images!");
+                                pdfimg.convertFile().then(() => {
 
-                                if (err || err2 || err3)
-                                    res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
-                                        err3, function () {res.end();});
+                                    console.log("Document successfully converted to images!");
 
-                                else res.write("SUCCESS!", function () {res.end();});
+                                    if (err || err2 || err3)
+                                        res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
+                                            err3, () => {res.end();});
 
-                            }, function(error) {
+                                    else res.write("SUCCESS!", () => {res.end();});
 
-                                console.log("Document conversion failed!");
+                                }, function (error) {
 
-                                if (err || err2 || err3)
-                                    res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
-                                        err3 + ";" + error, function () {res.end();});
+                                    console.log("Document conversion failed!");
 
-                                else res.write("SUCCESS!", function () {res.end();});
+                                    if (err || err2 || err3)
+                                        res.write("Error while writing to disk!;" + err + ";" + err2 + ";" +
+                                            err3 + ";" + error, () => {
+                                            res.end();
+                                        });
 
-                            });
+                                    else res.write("SUCCESS!", () => {res.end();});
+
+                                });
+
+                            }));
 
                         });
 
@@ -1027,13 +1150,14 @@ function addDocument(database, forbiddenNames, req, res) {
 
                 });
 
-            } else res.write("ERROR: A document of this name already exists or is disallowed!", function(){res.end();});
+            } else res.write("ERROR: A document of this name already exists or is disallowed!",
+                () => {res.end();});
 
         });
 
         form.on("error", function (err) {
 
-            res.write("\nError while uploading file(s)!;" + err,function(){res.end();});
+            res.write("\nError while uploading file(s)!;" + err,() => {res.end();});
 
         });
 
@@ -1041,7 +1165,7 @@ function addDocument(database, forbiddenNames, req, res) {
 
         //Only allow POST connections here
         res.writeHead(405,{"Allow": "POST"});
-        res.write("Only POST connections allowed here!",function(){res.end();});
+        res.write("Only POST connections allowed here!",() => {res.end();});
 
     }
 
@@ -1072,19 +1196,19 @@ function removeDocument(name, database, req, res) {
         library.splice(library.indexOf(name), 1);
         delete resources[name];
 
-        database.libToFile("document-library", JSON.stringify(library), function(err){
+        database.libToFile("document-library", JSON.stringify(library), (err) => {
 
-            fs.unlink("data/documents/" + name + ".json", function(err2){
+            fs.unlink("data/documents/" + name + ".json", (err2) => {
 
-                fs.unlink("data/documents/" + fileName, function(err3){
+                fs.unlink("data/documents/" + fileName, (err3) => {
 
-                    fs.rmdir("data/documents/" + name, function(err4){
+                    fs.rimraf("data/documents/" + name, (err4) => {
 
                         if(err || err2 || err3 || err4)
                             res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 + ";" +
-                                err4, function(){res.end();});
+                                err4, () => {res.end();});
 
-                        else res.write("SUCCESS (" + fileName + ")!", function(){res.end();});
+                        else res.write("SUCCESS (" + fileName + ")!", () => {res.end();});
 
                     });
 
@@ -1094,7 +1218,7 @@ function removeDocument(name, database, req, res) {
 
         });
 
-    } else res.write("ERROR: A document of this name does not exist!", function(){res.end();});
+    } else res.write("ERROR: A document of this name does not exist!", () => {res.end();});
 
 }
 
@@ -1126,27 +1250,25 @@ function editDocument(oldName, newName, database, forbiddenNames, req, res) {
 
                 Object.defineProperty(resources, newName, Object.getOwnPropertyDescriptor(resources, oldName));
                 delete resources[oldName];
-                resources[newName].name =
-                    f.dehyphenate(newName);
+                resources[newName].name = f.dehyphenate(newName);
 
             }
 
-            database.libToFile("document-library", JSON.stringify(library), function(err){
+            database.libToFile("document-library", JSON.stringify(library), (err) => {
 
-                database.libToFile("documents/" + oldName, JSON.stringify(resources[newName]),
-                    function(err2){
+                database.libToFile("documents/" + oldName, JSON.stringify(resources[newName]), (err2) => {
 
                     fs.rename("data/documents/" + oldName + ".json",
-                        "data/documents/" + newName + ".json", function(err3) {
+                        "data/documents/" + newName + ".json", (err3) => {
 
                         fs.rename("data/documents/" + oldName, "data/documents/" + newName,
-                            function(err4) {
+                            (err4) => {
 
                             if (err || err2 || err3 || err4)
                                 res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 + ";" +
-                                    err4, function() {res.end();});
+                                    err4, () => {res.end();});
 
-                            else res.write(data, function() {res.end();});
+                            else res.write(data, () => {res.end();});
 
                         });
 
@@ -1157,9 +1279,9 @@ function editDocument(oldName, newName, database, forbiddenNames, req, res) {
             });
 
         } else res.write("ERROR: A document of that name already exists or is disallowed!",
-            function(){res.end();});
+            () => {res.end();});
 
-    } else res.write("ERROR: A document of that name does not exist!", function(){res.end();});
+    } else res.write("ERROR: A document of that name does not exist!", () => {res.end();});
 
 }
 
@@ -1181,17 +1303,16 @@ function moveDocument(name, database, res, req) {
     if(library.includes(name)) {
 
         if(library.indexOf(name) > 0)
-            library.splice(library.indexOf(name) - 1, 0,
-                library.splice(library.indexOf(name), 1)[0]);
+            library.splice(library.indexOf(name) - 1, 0, library.splice(library.indexOf(name), 1)[0]);
 
-        database.libToFile("document-library", JSON.stringify(library), function(err){
+        database.libToFile("document-library", JSON.stringify(library), (err) => {
 
-            if(err) res.write("Error while writing to disk!;" + err, function(){res.end();});
-            else res.write(data, function(){res.end();});
+            if(err) res.write("Error while writing to disk!;" + err, () => {res.end();});
+            else res.write(data, () => {res.end();});
 
         });
 
-    } else res.write("ERROR: A document of that name does not exist!", function(){res.end();});
+    } else res.write("ERROR: A document of that name does not exist!", () => {res.end();});
 
 }
 
@@ -1220,14 +1341,14 @@ function uploadDocument(name, database, req, res) {
 
         form.parse(req);
 
-        form.on("fileBegin", function(key, file) {
+        form.on("fileBegin", (key, file) => {
 
             fileName = file.name;
             file.path = "data/documents/" + name + "/" + file.name;
 
         });
 
-        form.on("file", function (key, file) {
+        form.on("file", (key, file) => {
 
             console.log("File received: " + file.name);
 
@@ -1235,21 +1356,20 @@ function uploadDocument(name, database, req, res) {
 
                 res.writeHead(413,{"Content-Type": "text/html"});
                 res.write("The file is too large!");
-                error += "413;";
 
             }
 
-            res.write("File(s) uploaded!\n");
+            res.write("File uploaded!\n");
 
         });
 
-        req.on("end", function () {
+        req.on("end", () => {
 
             console.log("POST request ended: " + fileName);
 
             resources[name]["file"] = fileName;
 
-            database.libToFile("documents/" + name, JSON.stringify(resources[name]),function(err){
+            database.libToFile("documents/" + name, JSON.stringify(resources[name]),(err) => {
 
                 if(err) {
 
@@ -1262,12 +1382,12 @@ function uploadDocument(name, database, req, res) {
 
                 resources[name]["pageCount"] = pdfimg.numberOfPages();
 
-                pdfimg.convertFile().then(function () {
+                pdfimg.convertFile().then(() => {
 
                     console.log("Document successfully converted to images!");
 
-                    if(error === "") res.write("File uploaded successfully!", function(){res.end();});
-                    else res.write("The following errors were thrown:\n" + error, function(){res.end();});
+                    if(error === "") res.write("File uploaded successfully!", () => {res.end();});
+                    else res.write("The following errors were thrown:\n" + error, () => {res.end();});
 
                 });
 
@@ -1277,7 +1397,7 @@ function uploadDocument(name, database, req, res) {
 
         form.on("error", function (err) {
 
-            res.write("\nError while uploading file(s)!;" + err + ";" + data,function(){res.end();});
+            res.write("\nError while uploading file(s)!;" + err + ";" + data,() => {res.end();});
 
         });
 
@@ -1285,7 +1405,7 @@ function uploadDocument(name, database, req, res) {
 
         //Only allow POST connections here
         res.writeHead(405,{"Allow": "POST"});
-        res.write("Only POST connections allowed here!",function(){res.end();});
+        res.write("Only POST connections allowed here!",() => {res.end();});
 
     }
 
@@ -1315,7 +1435,7 @@ function editDocumentMeta(name, database, req, res) {
 
         form.parse(req);
 
-        form.on("field", function(key, value){
+        form.on("field", (key, value) => {
 
             console.log("Field received: " + key + "=>" + value);
 
@@ -1323,7 +1443,7 @@ function editDocumentMeta(name, database, req, res) {
 
         });
 
-        req.on("end", function () {
+        req.on("end", () => {
 
             console.log("POST request ended: " + fields);
 
@@ -1334,13 +1454,13 @@ function editDocumentMeta(name, database, req, res) {
             if(fields.hasOwnProperty("contributor")) resources[name]["contributor"] = fields.contributor;
             if(fields.hasOwnProperty("seealso")) resources[name]["seealso"] = fields.seealso.split(",");
 
-            res.write("Document updated successfully!", function(){res.end();});
+            res.write("Document updated successfully!", () => {res.end();});
 
         });
 
-        form.on("error", function (err) {
+        form.on("error", (err) => {
 
-            res.write("\nError while updating document!;" + err, function(){res.end();});
+            res.write("\nError while updating document!;" + err, () => {res.end();});
 
         });
 
@@ -1348,9 +1468,102 @@ function editDocumentMeta(name, database, req, res) {
 
         //Only allow POST connections here
         res.writeHead(405,{"Allow": "POST"});
-        res.write("Only POST connections allowed here!",function(){res.end();});
+        res.write("Only POST connections allowed here!",() => {res.end();});
 
     }
+
+}
+
+
+/***
+ * @function addDocumentThumbnail - add a thumbnail to a document
+ *
+ * @param {string} name - Name of the document to add thumbnail to
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function addDocumentThumbnail(name, database, req, res) {
+
+    let resources = database.resources.galleries;
+
+    if (req.method === "POST") {
+
+        console.log("POST request received.");
+
+        let form = formidable.IncomingForm(),
+            fileName = "";
+
+        form.parse(req);
+
+        form.on("fileBegin", (key, file) => {
+
+            fileName = file.name;
+            file.path = "data/galleries/" + name + "/thumbnail.png";
+
+        });
+
+        form.on("file", (key, file) => {
+
+            console.log("File received: " + file.name);
+
+            if(file.size > MAX_FILE_SIZE) {
+
+                res.writeHead(413,{"Content-Type": "text/html"});
+                res.write("The file is too large!");
+
+            }
+
+            res.write("File uploaded!\n");
+
+        });
+
+        req.on("end", () => {
+
+            console.log("POST request ended: " + fileName);
+            res.write("File uploaded successfully!", () => {res.end();});
+
+        });
+
+        form.on("error", (err) => {
+
+            res.write("\nError while uploading file(s)!;" + err, () => {res.end();});
+
+        });
+
+    } else {
+
+        //Only allow POST connections here
+        res.writeHead(405,{"Allow": "POST"});
+        res.write("Only POST connections allowed here!", () => {res.end();});
+
+    }
+
+}
+
+
+/***
+ * @function removeDocumentThumbnail - removes tha thumbnail from a gallery
+ *
+ * @param {string} name - Name of the document to remove thumbnail from
+ * @param {Object} database - the main database object
+ * @param {IncomingMessage} req - request Object created by the http.Server Object
+ * @param {ServerResponse} res - response Object created by the http.Server Object
+ ***/
+function removeDocumentThumbnail(name, database, req, res) {
+
+    let resources = database.resources.galleries;
+
+    if(resources.hasOwnProperty(name)) {
+
+        fs.createReadStream("public/plus.png")
+            .pipe(fs.createWriteStream("data/documents/" + name + "/thumbnail.png")
+                .on("error",(err) => {
+                    res.write("Error while writing to disk!;" + err, () => {res.end();});
+                })
+                .on("finish",() => {res.write(data, () => {res.end();});}));
+
+    } else res.write("Thumbnail removal failed. The document was not found.", () => {res.end();});
 
 }
 
@@ -1399,16 +1612,16 @@ function getBookScript(document) {
 
 function getBookReaderHead() {
 
-    return "<script src='BookReader/jquery-1.10.1.js'></script>\n" +
-        "<script src='BookReader/jquery-ui-1.12.0.min.js'></script>\n" +
-        "<script src='BookReader/jquery.browser.min.js'></script>\n" +
-        "<script src='BookReader/dragscrollable-br.js'></script>\n" +
-        "<script src='BookReader/jquery.colorbox-min.js'></script>\n" +
-        "<script src='BookReader/jquery.bt.min.js'></script>\n" +
-        "<link rel='stylesheet' href='BookReader/BookReader.css'/>\n" +
-        "<script src='BookReader/BookReader.js'></script>\n" +
-        "<script type='text/javascript' src='BookReader/plugins/plugin.url.js'></script>\n" +
-        "<link rel='stylesheet' href='BookReaderDemo.css'/>\n";
+    return "<script src='/BookReader/jquery-1.10.1.js'></script>\n" +
+        "<script src='/BookReader/jquery-ui-1.12.0.min.js'></script>\n" +
+        "<script src='/BookReader/jquery.browser.min.js'></script>\n" +
+        "<script src='/BookReader/dragscrollable-br.js'></script>\n" +
+        "<script src='/BookReader/jquery.colorbox-min.js'></script>\n" +
+        "<script src='/BookReader/jquery.bt.min.js'></script>\n" +
+        "<link rel='stylesheet' href='/BookReader/BookReader.css'/>\n" +
+        "<script src='/BookReader/BookReader.js'></script>\n" +
+        "<script type='text/javascript' src='/BookReader/plugins/plugin.url.js'></script>\n" +
+        "<link rel='stylesheet' href='/BookReaderDemo.css'/>\n";
 
 }
 
@@ -1441,6 +1654,8 @@ function getURLParts() {
         "gallery-remove-element",
         "gallery-move-element",
         "gallery-edit-element",
+        "gallery-add-thumbnail",
+        "gallery-remove-thumbnail",
 
         "document",
         "document-admin",
@@ -1449,14 +1664,10 @@ function getURLParts() {
         "document-edit",
         "document-move",
         "document-upload",
-        "document-edit-meta"
+        "document-edit-meta",
+        "document-add-thumbnail",
+        "document-remove-thumbnail"
     ];
-
-}
-
-function publicSubFolders() {
-
-    return ["BookReader"];
 
 }
 
@@ -1471,19 +1682,15 @@ function getIndexItems(resources) {
     let items = {Documents: [], Galleries: []};
     let i = 0;
 
-    for(const item in resources.galleries) {
-
-        items.Galleries[i++] = {name: item, url: "/gallery/" + item};
-
-    }
+    for(const item in resources.galleries)
+        items.Galleries[i++] =
+            {name: item, url: "/gallery/" + item, imagepath: "/getImg/galleries/" + item + "/thumbnail.png"};
 
     i = 0;
 
-    for(const item in resources.documents) {
-
-        items.Documents[i++] = {name: item, url: "/document/" + item};
-
-    }
+    for(const item in resources.documents)
+        items.Documents[i++] =
+            {name: item, url: "/document/" + item, imagepath: "/getImg/documents/" + item + "/thumbnail.png"};
 
     return items;
 
@@ -1510,6 +1717,8 @@ function handleURL(url, admin, req, res, nameList, database) {
         case "gallery-remove-element": if(admin) removeGalleryElement(url[1], url[2], database, req, res); break;
         case "gallery-edit-element": if(admin) editGalleryElement(url[1], url[2], database, req, res); break;
         case "gallery-move-element": if(admin) moveGalleryElement(url[1], url[2], database, req, res); break;
+        case "gallery-add-thumbnail": if(admin) addGalleryThumbnail(url[1], database, req, res); break;
+        case "gallery-remove-thumbnail": if(admin) removeGalleryThumbnail(url[1], database, req, res); break;
 
         case "document-admin": if(admin) adminDocument(docLib, docRes, req, res); break;
         case "document-add": if(admin) addDocument(database, nameList, req, res); break;
@@ -1518,6 +1727,8 @@ function handleURL(url, admin, req, res, nameList, database) {
         case "document-move": if(admin) moveDocument(url[1], database, req, res); break;
         case "document-upload": if(admin) uploadDocument(url[1], database, req, res); break;
         case "document-edit-meta": if(admin) editDocumentMeta(url[1], database, req, res); break;
+        case "document-add-thumbnail": if(admin) addDocumentThumbnail(url[1], database, req, res); break;
+        case "document-remove-thumbnail": if(admin) removeDocumentThumbnail(url[1], database, req, res); break;
 
     }
 
@@ -1532,9 +1743,15 @@ function loadDatabase(database){
     //load gallery library to database
     database.fileToLib("gallery-library",function(data, err) {
 
+        database.library.galleries = [];
+
         if (!err) {
 
-            database.library.galleries = JSON.parse(data);
+            let json = JSON.parse(data);
+
+            if(Array.isArray(json))
+                database.library.galleries = json;
+
             console.log("Gallery library successfully loaded!");
 
         } else console.error("ERROR: Gallery library not found or corrupted. " +
@@ -1545,7 +1762,7 @@ function loadDatabase(database){
 
         for (let i=0; i<database.library.galleries.length; i++) {
 
-            database.fileToLib("galleries/" + database.library.galleries[i], function (data, err) {
+            database.fileToLib("galleries/" + database.library.galleries[i], (data, err) => {
 
                 if (!err) database.resources.galleries[database.library.galleries[i]] = JSON.parse(data);
                 else console.error("ERROR: The resource requested could not be loaded to the database! " +
@@ -1557,11 +1774,17 @@ function loadDatabase(database){
 
 
         //load document library to database
-        database.fileToLib("document-library",function(data, err) {
+        database.fileToLib("document-library", (data, err) => {
+
+            database.library.documents = [];
 
             if (!err) {
 
-                database.library.documents = JSON.parse(data);
+                let json = JSON.parse(data);
+
+                if(Array.isArray(json))
+                    database.library.documents = json;
+
                 console.log("Document library successfully loaded!");
 
             } else console.error("ERROR: Document library not found or corrupted! " +
@@ -1572,11 +1795,9 @@ function loadDatabase(database){
             
             for (let i=0; i<database.library.documents.length; i++) {
 
-                database.fileToLib("documents/" + database.library.documents[i], function (data, err) {
+                database.fileToLib("documents/" + database.library.documents[i], (data, err) => {
 
-                    if (!err)
-                        database.resources.documents[database.library.documents[i]] = JSON.parse(data);
-
+                    if (!err) database.resources.documents[database.library.documents[i]] = JSON.parse(data);
                     else console.error("ERROR: The resource requested could not be loaded to the database! " +
                             "(loadLibrary/documents)");
 
@@ -1600,7 +1821,6 @@ module.exports.getDocument = getDocument;
 module.exports.getGallery = getGallery;
 
 module.exports.getURLParts = getURLParts;
-module.exports.publicSubFolders = publicSubFolders;
 module.exports.getPanelItems = getPanelItems;
 module.exports.getIndexItems = getIndexItems;
 module.exports.handleURL = handleURL;

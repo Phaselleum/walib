@@ -2,13 +2,24 @@ This project is currently WIP and version numbering has yet to be introduced.
 
 =============================================
 
+
+walib is a node.js-based web server and memory database library that dynamically supports its own plugins for content management.
+
+The main index page acts as a gateway to the contents provided as plugins, being dynamically generated from provided plugin data.
+
+The plugins can be managed through the provided administration panel.
+
+This project includes the archiver plugin as a default content management system, which can be used to store and display image galleries and pdf documents.
+
+Initial passwords and the port are set in the properties.ini file, passwords are all hashed as sha512.
+
+
+=============================================
+
 Exported methods required by plugins:
 
 getURLParts():
 - returns an array containing all first subdirectories of incoming URLs handled by the plugin
-
-publicSubFolders():
-- returns folders the plugin requires access to within the public/ folder.
 
 getPanelItems():
 # only the url key is necessarily required in the object, or the link will default to "#".
@@ -41,8 +52,11 @@ Used plugins/libraries:
 node.js by Ryan Dahl
 js-sha512 (JavaScript library) by Yi-Cyuan Chen
 jquery by the JS Foundation
+formidable (node module) by felixge
+properties-reader (node module) by steveukx
 
 for the archiver plugin:
 formidable (node module) by felixge
 pdf-image (node module) by mooz
+rimraf (node module) by isaacs
 Internet Archive BookReader (JavaScript library)

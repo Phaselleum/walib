@@ -113,6 +113,55 @@ function moveGalleryElementCS(galleryName, elementId) {
 
 }
 
+function addGalleryThumbnailCS(name) {
+
+    let fd = new FormData(),
+        fileElement = $("#g-atn-" + name)[0];
+
+    if(fileElement.files[0].size > MAX_FILE_SIZE) {
+
+        alert("The file ist too large to be uploaded!");
+        return;
+
+    }
+
+    fd.append("file", fileElement.files[0]);
+
+    $.ajax({
+
+        url: '/gallery-add-thumbnail/' + name,
+        type: 'post',
+        data: fd,
+        contentType: false,
+        processData: false,
+        success: function(data) {
+
+            alert(data);
+            window.location.reload();
+
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+
+            alert("Error thrown during post: " + textStatus + ";" + errorThrown);
+
+        }
+
+    });
+
+    $.post();
+
+}
+
+
+function removeGalleryThumbnailCS(name) {
+
+    $.get("gallery-remove-thumbnail/" + name, function(data){
+        alert(data);
+        window.location.reload();
+    });
+
+}
+
 
 /**
  * Document functions
@@ -256,6 +305,123 @@ function editDocumentMetaCS(name) {
     $.ajax({
 
         url: '/document-edit-meta/' + name,
+        type: 'post',
+        data: fd,
+        contentType: false,
+        processData: false,
+        success: function(data) {
+
+            alert(data);
+            window.location.reload();
+
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+
+            alert("Error thrown during post: " + textStatus + ";" + errorThrown);
+
+        }
+
+    });
+
+    $.post();
+
+}
+
+function addDocumentThumbnailCS(name) {
+
+    let fd = new FormData(),
+        fileElement = $("#g-atn-" + name)[0];
+
+    if(fileElement.files[0].size > MAX_FILE_SIZE) {
+
+        alert("The file ist too large to be uploaded!");
+        return;
+
+    }
+
+    fd.append("file", fileElement.files[0]);
+
+    $.ajax({
+
+        url: '/document-add-thumbnail/' + name,
+        type: 'post',
+        data: fd,
+        contentType: false,
+        processData: false,
+        success: function(data) {
+
+            alert(data);
+            window.location.reload();
+
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+
+            alert("Error thrown during post: " + textStatus + ";" + errorThrown);
+
+        }
+
+    });
+
+    $.post();
+
+}
+
+
+function removeDocumentThumbnailCS(name) {
+
+    $.get("document-remove-thumbnail/" + name, function(data){
+        alert(data);
+        window.location.reload();
+    });
+
+}
+
+function setUserPW(){
+
+    let fd = new FormData();
+
+    fd.append("password", sha512($("#uPW").val()));
+
+    $.ajax({
+
+        url: '/update-upw/' + name,
+        type: 'post',
+        data: fd,
+        contentType: false,
+        processData: false,
+        success: function(data) {
+
+            alert(data);
+            window.location.reload();
+
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+
+            alert("Error thrown during post: " + textStatus + ";" + errorThrown);
+
+        }
+
+    });
+
+    $.post();
+
+}
+
+function setAdminPW(){
+
+    let fd = new FormData(),
+        old = $("#aPWo").val(),
+        new1 = $("#aPW1").val(),
+        new2 = $("#aPW2").val();
+
+    if(new1 !== new2) return alert("The passwords don't match!");
+
+    fd.append("oldpw", sha512(old));
+    fd.append("newpw", sha512(new1));
+
+    $.ajax({
+
+        url: '/update-apw/' + name,
         type: 'post',
         data: fd,
         contentType: false,

@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "dependencies": {
     "formidable": "latest",
-    "pdf-image": "^2.0.0"
+    "pdf-image": "^2.0.0",
+    "properties-reader": "^2.0.0",
+    "rimraf": "^3.0.2"
   }
 }

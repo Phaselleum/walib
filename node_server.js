@@ -38,6 +38,8 @@
 const http = require("http"),
     fs = require("fs"),
     url = require("url"),
+    formidable = require('formidable'),
+    propertiesReader = require('properties-reader'),
     f = require("./plugins/methods.js"),
     htmlbase = require("./plugins/htmlbase"),
     archiver = require("./plugins/archiver.js");
@@ -49,14 +51,18 @@ const plugins = [archiver];
  * *********************** 0.2 CONSTANTS ********************** *
  * ************************************************************ */
 
+const PROPERTIES_URL = 'properties.ini';
+let properties = propertiesReader(PROPERTIES_URL);
 
-const PORT = 80,
-    PUBLIC = true,
+let PORT = properties.path().port;
+if(!PORT) PORT = 80;
+
+const PUBLIC = true,
     SESS_TIMEOUT = 12*60*60*1000, // 12 hours
     ADMIN_SESS_TIMEOUT = 90*60*1000; // 90 minutes
 let ADMIN_SESS_ID = f.randomChars(64), //placeholder, actual ID generated upon admin login (regenerated with every login)
-    PASSWORD =  "28a5c6dac4ecbc8294a840150744d09523fb562e5c55ddd2d6a723979c8d351b1d394057440675ba8ccec12537ed0a804f398ac867d621eefa52d70fbfbe680e", //user password
-    ADMIN_PW =  "0bd2cff572e3944fe54587d01cdffc2abd4d6b30fc8d2549f0edf3ab0810de61389a6a97d0be5ffcc48c191966859b952351eba22d0c76006a9146b2f03b63b3"; //admin passoword
+    PASSWORD = properties.path().password,
+    ADMIN_PW = properties.path().admin_pw;
 
 
 /* ************************************************************ *
@@ -66,7 +72,9 @@ let ADMIN_SESS_ID = f.randomChars(64), //placeholder, actual ID generated upon a
 
 //Session Cookies stored in req.headers.cookie
 
-http.createServer(function(req,res) {
+const SERVER = http.createServer(handleRequest);
+
+function handleRequest(req, res) {
 
     let urlparts = url.parse(req.url, true),
         pathname = urlparts.pathname,
@@ -106,17 +114,22 @@ http.createServer(function(req,res) {
 
     //block illegal access of server code
     if(reqfile.includes("node_server.js") ||
-        path[0] === "plugins" || path[0] === "node_modules" || path[0] === "data") {
+        path[0] === "plugins" || path[0] === "node_modules" || path[0] === "data" || path[0] === "properties.ini") {
 
-        res.writeHead(404).end();
+        console.log("Attemted access of private files blocked!");
 
-    //check for illegal access of admin area
+        reqfile = "index.html";
+        path = ["index.html"];
+
+        //check for illegal access of admin area
     } else if(sessionid !== ADMIN_SESS_ID && (reqfile.includes("nomad.html") || reqfile.includes("nomad.js"))) {
 
         console.log("Attemted access of admin files blocked!");
-        res.writeHead(404).end();
 
-    //check for correct password in case of login
+        reqfile = "index.html";
+        path = ["index.html"];
+
+        //check for correct password in case of login
     } else if(path[0] === "login") {
 
         console.log("login request received");
@@ -126,7 +139,7 @@ http.createServer(function(req,res) {
             sessionid = f.randomChars(64);
             database.sessions[sessionid] = Date.now() + SESS_TIMEOUT;
             console.log("login attempt successful! New session id (" + sessionid + ")");
-            res.write(sessionid, function(){res.end();});
+            res.write(sessionid, () => {res.end();});
 
         } else {
 
@@ -136,7 +149,7 @@ http.createServer(function(req,res) {
         }
 
 
-    //check for correct password in case of login
+        //check for correct password in case of login
     } else if(path[0] === "login9") {
 
         console.log("admin login request received");
@@ -147,7 +160,7 @@ http.createServer(function(req,res) {
             sessionid = ADMIN_SESS_ID;
             database.sessions[sessionid] = Date.now() + ADMIN_SESS_TIMEOUT;
             console.log("admin login attempt successful! Using standard admin session id");
-            res.writeHead(200).write(sessionid, function(){res.end();});
+            res.writeHead(200).write(sessionid, () => {res.end();});
 
         } else {
 
@@ -163,6 +176,16 @@ http.createServer(function(req,res) {
 
         if(sessionid === ADMIN_SESS_ID) {
 
+            if(path.length > 1) {
+
+                if(path[1] === "settings") {
+
+                    return res.writeHead(200).write(htmlbase.buildSettings(), () => {res.end();});
+
+                }
+
+            }
+
             let panelItems = [];
 
             plugins.forEach(function(plugin) {
@@ -172,8 +195,130 @@ http.createServer(function(req,res) {
 
             });
 
-            let html = htmlbase.buildPanel(panelItems);
-            res.writeHead(200).write(html, function(){res.end();});
+            res.writeHead(200).write(htmlbase.buildPanel(panelItems), () => {res.end();});
+
+        } else {
+
+            console.log("unauthorised panel access atempt!");
+            reqfile = "index.html";
+
+        }
+
+
+    } else if(path[0] === "update-upw") {
+
+        console.log("user password update requested");
+
+        if(sessionid === ADMIN_SESS_ID) {
+
+            if (req.method === "POST") {
+
+                let form = formidable.IncomingForm(),
+                    field = "";
+
+                form.parse(req);
+
+                form.on("field", function(key, value){
+
+                    console.log("Field received: " + key + "=>" + value);
+
+                    if(key === "password") field = value;
+
+                });
+
+                req.on("end", function () {
+
+                    if (field.length === 128) {
+
+                        PASSWORD = field;
+                        properties.password = field;
+                        properties.save(PROPERTIES_URL).then(res.writeHead(200)
+                            .write("user password update successful!", function () {res.end();})
+                        );
+
+                    } else {
+
+                        res.writeHead(200).write("password invalid!", function () {res.end();});
+
+                    }
+
+                });
+
+            } else {
+
+                //Only allow POST connections here
+                res.writeHead(405,{"Allow": "POST"});
+                res.write("Only POST connections allowed here!",() => {res.end();});
+
+            }
+
+        } else {
+
+            console.log("unauthorised panel access atempt!");
+            reqfile = "index.html";
+
+        }
+
+
+    } else if(path[0] === "update-apw") {
+
+        console.log("admin password update requested");
+
+        if(sessionid === ADMIN_SESS_ID) {
+
+            if (req.method === "POST") {
+
+                let form = formidable.IncomingForm(),
+                    oldPW = "",
+                    newPW = "";
+
+                form.parse(req);
+
+                form.on("field", function(key, value){
+
+                    console.log("Field received: " + key + "=>" + value);
+
+                    if(key === "oldpw") oldPW = value;
+                    if(key === "newpw") newPW = value;
+
+                });
+
+                req.on("end", function () {
+
+                    if (oldPW === ADMIN_PW && newPW.length === 128) {
+
+                        ADMIN_PW = newPW;
+                        properties.admin_pw = field;
+                        properties.save(PROPERTIES_URL).then(res.writeHead(200)
+                            .write("admin password update successful!", function () {res.end();})
+                        );
+
+                    } else {
+
+                        res.writeHead(200).write("password invalid!", function () {res.end();});
+
+                    }
+
+                });
+
+            } else {
+
+                //Only allow POST connections here
+                res.writeHead(405,{"Allow": "POST"});
+                res.write("Only POST connections allowed here!",() => {res.end();});
+
+            }
+
+            if(path.length > 2 && path[1].length === 128 && path[2].length === 128 && path) {
+
+                PASSWORD = path[1];
+                res.writeHead(200).write("password successfully updated!", () => {res.end();});
+
+            } else {
+
+                res.writeHead(200).write("password invalid!", () => {res.end();});
+
+            }
 
         } else {
 
@@ -199,9 +344,9 @@ http.createServer(function(req,res) {
                 console.log("Redirecting to settings page...");
                 reqfile = "cookie.html";
 
-            //check for existing and valid session id, remove if an invalid session id is found
+                //check for existing and valid session id, remove if an invalid session id is found
             } else if((!database.sessions.hasOwnProperty(sessionid) || database.sessions[sessionid] < Date.now())
-                    && reqfile !== "cookie.html") {
+                && reqfile !== "cookie.html") {
 
                 console.log("Redirecting to login page...");
                 reqfile = "login.html";
@@ -234,7 +379,9 @@ http.createServer(function(req,res) {
             "plugins",
             "node_modules",
             "public",
-            "data"
+            "data",
+            "update-upw",
+            "update-apw"
         ];
 
         let publicList = ["getDoc","getImg"];
@@ -245,47 +392,6 @@ http.createServer(function(req,res) {
                 nameList = nameList.concat(plugin.getURLParts());
 
         });
-
-        //redirect all subfolder access to base level, excluding allowed access excluding from that base level resources
-        if((!nameList.includes(path[0])) || (nameList.includes(path[0]) && path.last().includes("."))) {
-
-            let reqfileLength = reqfile.length,
-                subfolder = false;
-
-            //in case resources are requested from subfolders, adjust the base level
-            plugins.forEach(function(plugin) {
-
-                if (plugin.hasOwnProperty("publicSubFolders")) {
-
-                    if (plugin.publicSubFolders().includes(path[1])) {
-
-                        reqfile = reqfile.substr(path[0].length);
-                        path.shift();
-                        subfolder = true;
-
-                    }
-
-                }
-
-                if(!subfolder && path.length > 1 && !publicList.includes(path[0])) {
-
-                    reqfile = path[path.length-1]
-                    path = [reqfile];
-
-                }
-
-            });
-
-            //redirect empty path requests to the corresponding index.html or else redirects to the base level
-            if(reqfile.length === reqfileLength) {
-
-                if(!path.last().includes("."))
-                    reqfile = "index.html";
-                else reqfile = path.last();
-
-            }
-
-        }
 
         let handled = false;
 
@@ -316,15 +422,12 @@ http.createServer(function(req,res) {
 
             plugins.forEach(function(plugin) {
 
-                if(plugin.hasOwnProperty("getIndexItems")) {
-
+                if(plugin.hasOwnProperty("getIndexItems"))
                     Object.assign(items, plugin.getIndexItems(database.resources));
-
-                }
 
             });
 
-            res.write(htmlbase.buildIndex(items),function(){res.end();});
+            res.write(htmlbase.buildIndex(items),() => {res.end();});
 
         }
 
@@ -340,20 +443,17 @@ http.createServer(function(req,res) {
 
                     if (err) {
 
-                        console.error("Error: File \"data/" + path.join("/") +
-                            "\" could not be fetched. errno: " + err.errno);
+                        console.error("Error: File \"data/" + path.join("/") + "\" could not be fetched. errno: " +
+                            err.errno);
                         res.writeHead(404).end();
 
-                    } else {
-
-                        res.writeHead(200, {"Content-Type": "application/pdf"});
-                        res.write(data, function(){res.end();});
-
-                    }
+                    } else
+                        res.writeHead(200, {"Content-Type": "application/pdf"})
+                            .write(data, () => {res.end();});
 
                 });
 
-            //handles image fetches/downloads
+                //handles image fetches/downloads
             } else if(path[0] === "getImg") {
 
                 path.shift();
@@ -367,17 +467,14 @@ http.createServer(function(req,res) {
                         res.writeHead(404);
                         res.end();
 
-                    } else {
-
+                    } else
                         res.writeHead(200,
-                            {"Content-Type": "image/" + path[path.length - 1].split(".")[1]});
-                        res.write(data, function(){res.end();});
-
-                    }
+                            {"Content-Type": "image/" + path[path.length - 1].split(".")[1]})
+                            .write(data, () => {res.end();});
 
                 });
 
-            //handles regular file access
+                //handles regular file access
             } else {
 
                 if(PUBLIC)
@@ -388,8 +485,7 @@ http.createServer(function(req,res) {
                     if (err) {
 
                         console.error("Error: File \"" + reqfile + "\" could not be fetched. errno: " + err.errno);
-                        res.writeHead(404);
-                        res.end();
+                        res.writeHead(404).end();
 
                     } else {
 
@@ -413,8 +509,8 @@ http.createServer(function(req,res) {
 
                         }
 
-                        res.writeHead(200, {"Content-Type": ctype});
-                        res.write(data, function(){res.end();});
+                        res.writeHead(200, {"Content-Type": ctype})
+                            .write(data, () => {res.end();});
 
                     }
 
@@ -426,9 +522,17 @@ http.createServer(function(req,res) {
 
     }
 
-}).listen(PORT);
+}
 
+SERVER.listen(PORT);
 console.log('Server running at port ' + PORT + '/');
+
+process.on('uncaughtException', function(err) {
+
+    console.error(err);
+    SERVER.listen(PORT);
+
+})
 
 
 
@@ -457,7 +561,7 @@ const database = {
     "sessions": {},
 
     //loads a json file from the data folder and passes it on
-    "fileToLib": function(file, callback) {
+    "fileToLib": (file, callback) => {
 
         fs.readFile("data/" + file + ".json",function(err,data) {
 
@@ -471,7 +575,7 @@ const database = {
     },
 
     //saves a json file from the database to the data folder
-    "libToFile": function(file, content, callback){
+    "libToFile": (file, content, callback) => {
 
         fs.writeFile("data/" + file + ".json", content, function(err){
 
@@ -485,7 +589,6 @@ const database = {
     }
 
 };
-
 
 /* ************************************************************ *
  * *************** 2.3 DATABASE INITIALISATION **************** *
