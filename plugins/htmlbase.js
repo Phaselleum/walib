@@ -153,7 +153,7 @@ function buildSettings(items) {
 //returns the HTML for the index page from a given list of panel items as objects
 function buildIndex(items) {
 
-    let html = getHead("", "Project Alexandria", "Familie Brandes");
+    let html = getHead("", "Project Alexandria", "$$title$$");
 
     html +="        <div id='content'>\n" +
         "           <div id='peoplespace' style='font-weight:bold;text-align:center;text-decoration: underline;'>\n";
@@ -193,7 +193,7 @@ function buildIndex(items) {
                     "alt='" + items[key][j].name + "'>\n" +
                     "                       </div>\n" +
                     "                       <div class='treelistitemdesc'>\n" +
-                    "                           <a href='location.href=\"" + items[key][j].url + "\"'>" +
+                    "                           <a href='" + items[key][j].url + "'>" +
                     items[key][j].name + "</a>\n" +
                     "                       </div>\n" +
                     "                   </div>\n";

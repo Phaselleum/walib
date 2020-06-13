@@ -144,7 +144,8 @@ function handleRequest(req, res) {
         } else {
 
             console.log("login attempt failed!");
-            res.writeHead(401).end();
+            res.writeHead(401);
+			res.end();
 
         }
 
@@ -160,12 +161,14 @@ function handleRequest(req, res) {
             sessionid = ADMIN_SESS_ID;
             database.sessions[sessionid] = Date.now() + ADMIN_SESS_TIMEOUT;
             console.log("admin login attempt successful! Using standard admin session id");
-            res.writeHead(200).write(sessionid, () => {res.end();});
+            res.writeHead(200);
+			res.write(sessionid, () => {res.end();});
 
         } else {
 
             console.log("admin login attempt failed!");
-            return res.writeHead(401).end();
+            res.writeHead(401);
+			return res.end();
 
         }
 
@@ -180,7 +183,8 @@ function handleRequest(req, res) {
 
                 if(path[1] === "settings") {
 
-                    return res.writeHead(200).write(htmlbase.buildSettings(), () => {res.end();});
+                    res.writeHead(200);
+					return res.write(htmlbase.buildSettings(), () => {res.end();});
 
                 }
 
@@ -188,14 +192,15 @@ function handleRequest(req, res) {
 
             let panelItems = [];
 
-            plugins.forEach(function(plugin) {
+            plugins.forEach((plugin) => {
 
                 if (plugin.hasOwnProperty("getPanelItems"))
                     panelItems = panelItems.concat(plugin.getPanelItems());
 
             });
 
-            res.writeHead(200).write(htmlbase.buildPanel(panelItems), () => {res.end();});
+            res.writeHead(200);
+			res.write(htmlbase.buildPanel(panelItems), () => {res.end();});
 
         } else {
 
@@ -232,13 +237,12 @@ function handleRequest(req, res) {
 
                         PASSWORD = field;
                         properties.password = field;
-                        properties.save(PROPERTIES_URL).then(res.writeHead(200)
-                            .write("user password update successful!", function () {res.end();})
-                        );
+                        properties.save(PROPERTIES_URL)
+							.then(res.write("user password update successful!", () => {res.end();}));
 
                     } else {
 
-                        res.writeHead(200).write("password invalid!", function () {res.end();});
+                        res.write("password invalid!", () => {res.end();});
 
                     }
 
@@ -274,7 +278,7 @@ function handleRequest(req, res) {
 
                 form.parse(req);
 
-                form.on("field", function(key, value){
+                form.on("field", (key, value) => {
 
                     console.log("Field received: " + key + "=>" + value);
 
@@ -283,19 +287,19 @@ function handleRequest(req, res) {
 
                 });
 
-                req.on("end", function () {
+                req.on("end", () => {
 
                     if (oldPW === ADMIN_PW && newPW.length === 128) {
 
                         ADMIN_PW = newPW;
                         properties.admin_pw = field;
-                        properties.save(PROPERTIES_URL).then(res.writeHead(200)
-                            .write("admin password update successful!", function () {res.end();})
+                        properties.save(PROPERTIES_URL).then(res
+							.write("admin password update successful!", () => {res.end();})
                         );
 
                     } else {
 
-                        res.writeHead(200).write("password invalid!", function () {res.end();});
+                        res.write("password invalid!", () => {res.end();});
 
                     }
 
@@ -312,11 +316,13 @@ function handleRequest(req, res) {
             if(path.length > 2 && path[1].length === 128 && path[2].length === 128 && path) {
 
                 PASSWORD = path[1];
-                res.writeHead(200).write("password successfully updated!", () => {res.end();});
+                res.writeHead(200);
+				res.write("password successfully updated!", () => {res.end();});
 
             } else {
 
-                res.writeHead(200).write("password invalid!", () => {res.end();});
+                res.writeHead(200);
+				res.write("password invalid!", () => {res.end();});
 
             }
 
@@ -386,7 +392,7 @@ function handleRequest(req, res) {
 
         let publicList = ["getDoc","getImg"];
 
-        plugins.forEach(function(plugin) {
+        plugins.forEach((plugin) => {
 
             if(plugin.hasOwnProperty("getURLParts"))
                 nameList = nameList.concat(plugin.getURLParts());
@@ -396,20 +402,12 @@ function handleRequest(req, res) {
         let handled = false;
 
         //handle dynamic content requests
-        plugins.forEach(function(plugin) {
+        plugins.forEach((plugin) => {
 
-            if(plugin.hasOwnProperty("handleURL")) {
+            if(plugin.hasOwnProperty("handleURL") && plugin.hasOwnProperty("getURLParts") && plugin.getURLParts().includes(path[0])) {
 
-                if(plugin.hasOwnProperty("getURLParts")) {
-
-                    if(plugin.getURLParts().includes(path[0])) {
-
-                        handled = true;
-                        plugin.handleURL(path, sessionid === ADMIN_SESS_ID, req, res, nameList, database);
-
-                    }
-
-                }
+				handled = true;
+				plugin.handleURL(path, sessionid === ADMIN_SESS_ID, req, res, nameList, database);
 
             }
 
@@ -420,7 +418,7 @@ function handleRequest(req, res) {
             handled = true;
             let items = {};
 
-            plugins.forEach(function(plugin) {
+            plugins.forEach((plugin) => {
 
                 if(plugin.hasOwnProperty("getIndexItems"))
                     Object.assign(items, plugin.getIndexItems(database.resources));
@@ -439,17 +437,18 @@ function handleRequest(req, res) {
 
                 path.shift();
 
-                fs.readFile("data/" + path.join("/"),function (err, data) {
+                fs.readFile("data/" + path.join("/"), (err, data) => {
 
                     if (err) {
 
                         console.error("Error: File \"data/" + path.join("/") + "\" could not be fetched. errno: " +
                             err.errno);
-                        res.writeHead(404).end();
+                        res.writeHead(404);
+						res.end();
 
                     } else
-                        res.writeHead(200, {"Content-Type": "application/pdf"})
-                            .write(data, () => {res.end();});
+                        res.writeHead(200, {"Content-Type": "application/pdf"});
+                        res.write(data, () => {res.end();});
 
                 });
 
@@ -458,7 +457,7 @@ function handleRequest(req, res) {
 
                 path.shift();
 
-                fs.readFile("data/" + path.join("/"),function (err, data) {
+                fs.readFile("data/" + path.join("/"), (err, data) => {
 
                     if (err) {
 
@@ -467,10 +466,13 @@ function handleRequest(req, res) {
                         res.writeHead(404);
                         res.end();
 
-                    } else
+                    } else {
+
                         res.writeHead(200,
-                            {"Content-Type": "image/" + path[path.length - 1].split(".")[1]})
-                            .write(data, () => {res.end();});
+                            {"Content-Type": "image/" + path[path.length - 1].split(".")[1]});
+                        res.write(data, () => {res.end();});
+
+                    }
 
                 });
 
@@ -480,12 +482,13 @@ function handleRequest(req, res) {
                 if(PUBLIC)
                     reqfile = "public/" + reqfile;
 
-                fs.readFile(reqfile, function (err, data) {
+                fs.readFile(reqfile, (err, data) => {
 
                     if (err) {
 
                         console.error("Error: File \"" + reqfile + "\" could not be fetched. errno: " + err.errno);
-                        res.writeHead(404).end();
+                        res.writeHead(404);
+						res.end();
 
                     } else {
 
@@ -509,8 +512,8 @@ function handleRequest(req, res) {
 
                         }
 
-                        res.writeHead(200, {"Content-Type": ctype})
-                            .write(data, () => {res.end();});
+                        res.writeHead(200, {"Content-Type": ctype});
+                        res.write(data, () => {res.end();});
 
                     }
 
@@ -527,10 +530,9 @@ function handleRequest(req, res) {
 SERVER.listen(PORT);
 console.log('Server running at port ' + PORT + '/');
 
-process.on('uncaughtException', function(err) {
+process.on('uncaughtException', (err) => {
 
     console.error(err);
-    SERVER.listen(PORT);
 
 })
 
@@ -563,7 +565,7 @@ const database = {
     //loads a json file from the data folder and passes it on
     "fileToLib": (file, callback) => {
 
-        fs.readFile("data/" + file + ".json",function(err,data) {
+        fs.readFile("data/" + file + ".json", (err,data) => {
 
             if(err)
                 console.error("Error while fetching " + file + " from the file system.\n" + err);
@@ -577,7 +579,7 @@ const database = {
     //saves a json file from the database to the data folder
     "libToFile": (file, content, callback) => {
 
-        fs.writeFile("data/" + file + ".json", content, function(err){
+        fs.writeFile("data/" + file + ".json", content, (err) => {
 
             if(err)
                 console.error("Error while writing data/" + file + ".json to the file system.\n" + err);
@@ -598,7 +600,7 @@ const database = {
 //loads the main json library to the database
 function loadLibrary() {
 
-    plugins.forEach(function(plugin) {
+    plugins.forEach((plugin) => {
 
         if(plugin.hasOwnProperty("loadDatabase"))
             plugin.loadDatabase(database);
@@ -606,7 +608,7 @@ function loadLibrary() {
     });
 
     //load language file to database
-    database.fileToLib("lang",function(data, err) {
+    database.fileToLib("lang", (data, err) => {
 
         if (!err) {
 

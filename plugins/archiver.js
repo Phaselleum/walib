@@ -299,7 +299,7 @@ function removeGallery(name, database, req, res) {
 
             fs.unlink("data/galleries/" + name + ".json", (err2) => {
 
-                fs.rimraf("data/galleries/" + name, (err3) => {
+                rimraf("data/galleries/" + name, (err3) => {
 
                     if(err || err2 || err3)
                         res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3,
@@ -791,25 +791,25 @@ function getDocument(docid, resources, req, res) {
     if(document.hasOwnProperty("description"))
         html += "<tr>\n<th>" + f.lang("Description") + "</th>\n<td>" + document.description + "</td>\n</tr>\n";
 
-    if(document.hasOwnProperty("seealso")) {
+    if(document.hasOwnProperty("seealso") && document.seealso.length > 0 && document.seealso[0] !== "") {
 
         html += "<tr>\n<th>" + f.lang("See Also") + "</th>\n<td>";
 
         for(let i=0; i<document.seealso.length; i++) {
 
-            let res = resources[document.seealso[i]];
+            let resc = resources[document.seealso[i]];
             html += "<a href='/" + document.seealso[i] + "'>";
 
-            if(res.hasOwnProperty("authors"))
-                html += res.authors.join(", ") + ": ";
+            if(resc.hasOwnProperty("authors"))
+                html += resc.authors.join(", ") + ": ";
             else html += "[" + f.lang("unknown") + "]: ";
 
-            if(res.hasOwnProperty("name"))
-                html += res.name + ". ";
+            if(resc.hasOwnProperty("name"))
+                html += resc.name + ". ";
             else html += "[" + document.seealso[i] + "]. ";
 
-            if(res.hasOwnProperty("date"))
-                html += res.date;
+            if(resc.hasOwnProperty("date"))
+                html += resc.date;
 
             html += "</a><br>\n";
 
@@ -922,7 +922,8 @@ function adminDocument(library, resources, req, res) {
             "                    <tr id='g-" + library[i] + "-add-doc' style='display:none;'>\n" +
             "                        <td colspan='5'>\n" +
             "                            <input id='g-" + library[i] + "-f-in' type='file' accept='.pdf'>\n" +
-            "                            <button onclick='uploadDocumentCS(\"" + library[i] + "\")'>Upload</button><br>\n" +
+            "                            <button onclick='uploadDocumentCS(\"" + library[i] + "\")'>Upload</button>" +
+            "<br>\n" +
             "                            <p>This might take a few seconds, please be patient!</p>\n" +
             "                        </td>\n" +
             "                    </tr>\n" +
@@ -1110,12 +1111,12 @@ function addDocument(database, forbiddenNames, req, res) {
                 database.libToFile("documents/" + docId, JSON.stringify(resources[docId]),
                     function (err) {
 
-                    database.libToFile("document-library", JSON.stringify(library), function (err2) {
+                    database.libToFile("document-library", JSON.stringify(library), (err2) => {
 
-                        fs.mkdir("data/documents/" + docId, function (err3) {
+                        fs.mkdir("data/documents/" + docId, (err3) => {
 
                             fs.createReadStream("public/plus.png")
-                                .pipe(fs.createWriteStream("data/galleries/" + name + "/thumbnail.png")
+                                .pipe(fs.createWriteStream("data/documents/" + name + "/thumbnail.png")
                                     .on("finish",() => {
 
                                 pdfimg.convertFile().then(() => {
@@ -1189,6 +1190,7 @@ function removeDocument(name, database, req, res) {
 
     if(library.includes(name)) {
 
+
         let fileName = "";
 
         if(resources[name].hasOwnProperty("file")) fileName = resources[name].file + "";
@@ -1202,7 +1204,7 @@ function removeDocument(name, database, req, res) {
 
                 fs.unlink("data/documents/" + fileName, (err3) => {
 
-                    fs.rimraf("data/documents/" + name, (err4) => {
+                    rimraf("data/documents/" + name, (err4) => {
 
                         if(err || err2 || err3 || err4)
                             res.write("Error while writing to disk!;" + err + ";" + err2 + ";" + err3 + ";" +
@@ -1485,7 +1487,7 @@ function editDocumentMeta(name, database, req, res) {
  ***/
 function addDocumentThumbnail(name, database, req, res) {
 
-    let resources = database.resources.galleries;
+    let resources = database.resources.documents;
 
     if (req.method === "POST") {
 
@@ -1499,7 +1501,7 @@ function addDocumentThumbnail(name, database, req, res) {
         form.on("fileBegin", (key, file) => {
 
             fileName = file.name;
-            file.path = "data/galleries/" + name + "/thumbnail.png";
+            file.path = "data/documents/" + name + "/thumbnail.png";
 
         });
 
@@ -1552,7 +1554,7 @@ function addDocumentThumbnail(name, database, req, res) {
  ***/
 function removeDocumentThumbnail(name, database, req, res) {
 
-    let resources = database.resources.galleries;
+    let resources = database.resources.documents;
 
     if(resources.hasOwnProperty(name)) {
 
@@ -1739,6 +1741,20 @@ function handleURL(url, admin, req, res, nameList, database) {
 }
 
 function loadDatabase(database){
+
+    fs.access("data/galleries/", (err) => {
+
+        if (err && err.code === 'ENOENT')
+            fs.mkdir("data/galleries");
+
+    });
+
+    fs.access("data/documents/", (err) => {
+
+        if (err && err.code === 'ENOENT')
+            fs.mkdir("data/documents");
+
+    });
 
     //load gallery library to database
     database.fileToLib("gallery-library",function(data, err) {
