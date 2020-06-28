@@ -72,14 +72,16 @@ function buildPanel(items) {
 
         let clas = "w25 m50";
 
-        if(items.length === 3)
-            clas = "w33 m50";
-        if(items.length === 2)
-            clas = "w50";
-        if(items.length === 1)
-            clas = "w100";
-        
-        for(let j=i;j<4&&j<items.length;j++) {
+        if(items.length - i < 4) {
+            if ((items.length - i) === 3)
+                clas = "w33 m50";
+            if ((items.length - i) === 2)
+                clas = "w50";
+            if ((items.length - i) === 1)
+                clas = "w100";
+        }
+
+        for(let j=i;j<(i+4)&&j<items.length;j++) {
             
             if(j === i+3 && j === items.length - 1)
                 clas = "w33 m100";
@@ -97,7 +99,7 @@ function buildPanel(items) {
                 "                           <img src='" + items[j].imagepath + "' alt='" + items[j].name + "'>\n" +
                 "                       </div>\n" +
                 "                       <div class='treelistitemdesc'>\n" +
-                "                           <a href='location.href=\"" + items[j].url + "\"'>" +
+                "                           <a href='" + items[j].url + "'>" +
                 items[j].name + "</a>\n" +
                 "                       </div>\n" +
                 "                   </div>\n";
@@ -113,7 +115,7 @@ function buildPanel(items) {
         "                           <img src='plus.png' alt='settings'>\n" +
         "                       </div>\n" +
         "                       <div class='treelistitemdesc'>\n" +
-        "                           <a href='location.href=\"/panel/settings\"'>Settings</a>\n" +
+        "                           <a href='/panel/settings'>Settings</a>\n" +
         "                       </div>\n" +
         "                   </div>\n" +
         "               </div>\n" +
@@ -167,14 +169,16 @@ function buildIndex(items) {
 
             let clas = "w25 m50";
 
-            if(items[key].length === 3)
-                clas = "w33 m50";
-            if(items[key].length === 2)
-                clas = "w50";
-            if(items[key].length === 1)
-                clas = "w100";
+            if(items[key].length - i < 4) {
+                if ((items[key].length - i) === 3)
+                    clas = "w33 m50";
+                if ((items[key].length - i) === 2)
+                    clas = "w50";
+                if ((items[key].length - i) === 1)
+                    clas = "w100";
+            }
 
-            for(let j=i;j<4&&j<items[key].length;j++) {
+			for(let j=i;j<(i+4)&&j<items[key].length;j++) {
 
                 if(j === i+3 && j === items[key].length - 1)
                     clas = "w33 m100";
@@ -194,7 +198,7 @@ function buildIndex(items) {
                     "                       </div>\n" +
                     "                       <div class='treelistitemdesc'>\n" +
                     "                           <a href='" + items[key][j].url + "'>" +
-                    items[key][j].name + "</a>\n" +
+                    f.dehyphenate(items[key][j].name) + "</a>\n" +
                     "                       </div>\n" +
                     "                   </div>\n";
 

@@ -544,6 +544,12 @@ td, th {
     cursor: pointer;
 }
 
+#galleryDesc {
+    white-space: pre;
+    text-align: left;
+    margin-left: 5%;
+}
+
 @media (max-width:875px) {
 
     .persongalleryelement img {
@@ -572,6 +578,7 @@ td, th {
 
 .persongallerylargeelement img {
     max-width: 95%;
+	max-height: 95vh;
 }
 
 .treelist {

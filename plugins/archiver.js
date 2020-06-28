@@ -173,8 +173,8 @@ function adminGallery(library, resources, req, res) {
                 "alt='" + resc[j][0] + "'>\n" +
                 "                        </td>\n" +
                 "                        <td>\n" +
-                "                            <input id='g-edit-" + library[i] + "-e-" + j + "i' type='text' " +
-                "value='" + resc[j][1] + "'>\n" +
+                "                            <textarea id='g-edit-" + library[i] + "-e-" + j + "i'>" + resc[j][1] + 
+                "</textarea>\n" +
                 "                        </td>\n" +
                 "                        <td colspan='3'>\n" +
                 "                            <button " +
@@ -189,8 +189,8 @@ function adminGallery(library, resources, req, res) {
             "                            <input id='g-ae-f-" + library[i] + "' type='file'>\n" +
             "                        </td>\n" +
             "                        <td>\n" +
-            "                            <input id='g-ae-d-" + library[i] + "' type='text' " +
-            "placeholder='description'>\n" +
+            "                            <textarea id='g-ae-d-" + library[i] + "' " +
+            "placeholder='description'></textarea>\n" +
             "                        </td>\n" +
             "                        <td colspan='3'>\n" +
             "                            <button onclick='addGalleryElementCS(\"" + library[i] + "\")'>Add" +
@@ -524,7 +524,7 @@ function removeGalleryElement(name, id, database, req, res) {
 
                 if(err || err2)
                     res.write("Error while writing to disk!;" + err + ";" + err2, () => {res.end();});
-                else res.write(data, () => {res.end();});
+                else res.write("SUCCESS!", () => {res.end();});
 
             });
 
@@ -619,7 +619,7 @@ function moveGalleryElement(name, id, database, req, res) {
         database.libToFile("gallery-library", JSON.stringify(library),(err) => {
 
             if (err) res.write("Error while writing to disk!;" + err + ";" + data, () => {res.end();});
-            else res.write(data,  () => {res.end();});
+            else res.write("SUCCESS!",  () => {res.end();});
 
         });
 
